@@ -16,17 +16,24 @@ namespace mcts_model
         model_side{model_side}
     {}
 
+    void expand_node(node){
+        // Get value and action logits from network
+        Network network;
+        Network::Evaluation result = network.evaluate();
+        node->expand(result);
+    }
+
     chess::move Model::search(chess::position state, int max_iter)
     {
         std::shared_ptr<node::Node> main_node{std::make_shared<node::Node>(state, model_side)};
-        main_node->expand();
+        expand_node(main_node);
         for(int i = 0 ; i < max_iter ; ++i)
         {
             std::shared_ptr<node::Node> current_node = main_node->traverse();
             if(current_node->is_over()) break;
             if(current_node->get_n() != 0)
             {
-                current_node->expand();
+                expand_node(current_node)
                 current_node = current_node->get_children().front();
             }
             current_node->rollout(rollout, policy);

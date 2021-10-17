@@ -45,9 +45,16 @@ class Node : public std::enable_shared_from_this<Node>
             }
             else
             {
-                double v_bar = t / n;
                 int N = p ? p->n : 1;
-                return v_bar + UCB1_CONST*sqrt(log(N) / n);
+                double pb_c_base, pb_c_init;
+                double prior = action_logits[this->index];
+
+                explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
+                explore_factor *= sqrt(N) / (n + 1);
+
+                prior_score = explore_factor * prior;
+                value_score = value;
+                return prior_score + value_score; 
             }
         }
 
@@ -84,6 +91,7 @@ class Node : public std::enable_shared_from_this<Node>
         std::weak_ptr<Node> parent;
         std::vector<std::shared_ptr<Node>> children;
         double t;
+        double value; // == t
         int n;
 };
 

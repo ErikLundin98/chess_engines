@@ -48,7 +48,7 @@ void Node::backpropagate()
 }
 
 // Expand node
-void Node::expand()
+void Node::expand(double value, vector<double> action_logits)
 {   
     std::vector<chess::move> available_moves{state.moves()};
     for (chess::move child_move : available_moves)
@@ -99,6 +99,10 @@ std::shared_ptr<Node> Node::traverse()
     {
         return best_child;
     }
+}
+
+std::shared_ptr<Node> Node::select_child(){
+
 }
 
 // Retrieve the best child node based on UCB1 score
