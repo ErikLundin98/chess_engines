@@ -1,4 +1,6 @@
 .vscode
 bin/
 build/
-local.mk
+venv/
+.env
+.vscode
