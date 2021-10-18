@@ -16,30 +16,30 @@ namespace mcts_model
         model_side{model_side}
     {}
 
-    void expand_node(node){
-        // Get value and action logits from network
+    void initialize_node(Node& node){
         Network network;
         Network::Evaluation result = network.evaluate();
         node->expand(result);
+        node->initialize_value(result.value);
     }
 
-    chess::move Model::search(chess::position state, int max_iter)
+    node::Node Model::search(chess::position state, int max_iter)
     {
+        
         std::shared_ptr<node::Node> main_node{std::make_shared<node::Node>(state, model_side)};
-        expand_node(main_node);
+        initialize_node(main_node);
         for(int i = 0 ; i < max_iter ; ++i)
         {
             std::shared_ptr<node::Node> current_node = main_node->traverse();
+            // What to do (expand, evaluate) if:
+            // * Current Node is terminal
+            // * Current node has n=0
             if(current_node->is_over()) break;
-            if(current_node->get_n() != 0)
-            {
-                expand_node(current_node)
-                current_node = current_node->get_children().front();
-            }
-            current_node->rollout(rollout, policy);
+
+            initialize_node(current_node);
             current_node->backpropagate();
         }
-        return main_node->best_move();
+        return main_node;
     }
     TimedModel::TimedModel(rollout_type rollout, policy_type policy, chess::side model_side) 
     : Model{rollout, policy, model_side}

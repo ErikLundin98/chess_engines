@@ -1,5 +1,6 @@
 
 #include "./node.hpp"
+#include "./network.hpp"
 #include <chess/chess.hpp>
 #include <mcts/rollout.hpp>
 #include <mcts/policy.hpp>
@@ -48,31 +49,36 @@ void Node::backpropagate()
 }
 
 // Expand node
-void Node::expand(double value, vector<double> action_logits)
+void Node::expand(Network::Evaluation evaluation)
 {   
-    std::vector<chess::move> available_moves{state.moves()};
-    for (chess::move child_move : available_moves)
+    for (auto action_prob: evaluation.action_probabilities)
     {
+        chess::move child_move = Network::move_from_action(action_prob.first);
         chess::position child_state = state.copy_move(child_move); // TODO - Make this optional
         std::shared_ptr<Node> new_child = std::make_shared<Node>(child_state, player_side, false, weak_from_this(), child_move);
-        if (new_child->state.is_checkmate() || new_child->state.is_stalemate())
-        {
-            if (new_child->state.is_checkmate())
-            {
-                new_child->t = new_child->state.get_turn() == player_side ? -WIN_SCORE : WIN_SCORE;
-            }
-            else
-            {
-                new_child->t = DRAW_SCORE;
-            }
-            new_child->is_terminal_node = true;
-            new_child->n = 1;
-            new_child->backpropagate();
-        }
+        new_child->prior = action_prob.second;
+        // if (new_child->state.is_checkmate() || new_child->state.is_stalemate())
+        // {
+        //     if (new_child->state.is_checkmate())
+        //     {
+        //         new_child->t = new_child->state.get_turn() == player_side ? -WIN_SCORE : WIN_SCORE;
+        //     }
+        //     else
+        //     {
+        //         new_child->t = DRAW_SCORE;
+        //     }
+        //     new_child->is_terminal_node = true;
+        //     new_child->n = 1;
+        //     new_child->backpropagate();
+        // }
         children.push_back(new_child);
     }
 }
 
+void initialize_value(double value){
+    t = value;
+    n = 1;
+}
 
 // Determine next node to expand/rollout by traversing tree
 std::shared_ptr<Node> Node::traverse()
@@ -116,6 +122,20 @@ std::shared_ptr<Node> Node::best_child() const
     }
     return get_max_element<std::shared_ptr<Node>>(children.begin(), winrates.begin(), winrates.end());
 }
+
+std::vector<double> Node::action_distribution(size_t num_actions){
+    std::vector<double> distribution{num_actions, 0.0};
+    size_t tot_visits = 0;
+    for (std::shared_ptr<Node> child : children){
+        distribution[child->action] = child->n;
+        tot_visits += distribution[child->action];
+    }
+    for (std::shared_ptr<Node> child : children){
+        distribution[child->action] /= tot_visits;
+    }
+    return distribution;
+}
+
 // Get the move that gives the best child
 // Useful for baseline mcts algorithm
 chess::move Node::best_move() const
@@ -139,6 +159,10 @@ bool Node::is_over() const
 int Node::get_n() const
 {
     return n;
+}
+
+double Node::get_value() const {
+    return n != 0 ? t / n : 0.0;
 }
 
 // Print the main node and its children

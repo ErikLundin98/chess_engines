@@ -35,6 +35,8 @@ class Node : public std::enable_shared_from_this<Node>
         // Expand node
         void expand();
 
+        void initialize_value(double value);
+
         // UCB1 scoring function
         inline double UCB1() const
         {
@@ -47,13 +49,12 @@ class Node : public std::enable_shared_from_this<Node>
             {
                 int N = p ? p->n : 1;
                 double pb_c_base, pb_c_init;
-                double prior = action_logits[this->index];
 
                 explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
                 explore_factor *= sqrt(N) / (n + 1);
 
                 prior_score = explore_factor * prior;
-                value_score = value;
+                value_score = get_value();
                 return prior_score + value_score; 
             }
         }
@@ -64,6 +65,11 @@ class Node : public std::enable_shared_from_this<Node>
         // Retrieve the best child node based on UCB1 score
         // Can be useful if we want to keep the tree from the previous iterations
         std::shared_ptr<Node> best_child() const;
+
+        // Get action distribution for the children of this node.
+        // Should be ran after the entire mcts search is completeted.
+        std::vector<double> action_distribution(size_t num_actions);
+
         // Get the move that gives the best child
         // Useful for baseline mcts algorithm
         chess::move best_move() const;
@@ -82,7 +88,7 @@ class Node : public std::enable_shared_from_this<Node>
         static double DRAW_SCORE;
         static double UCB1_CONST;
 
-    protected:
+    public: // Bad, but hate private stuff
         chess::position state;
         chess::side player_side;
         chess::move move;
@@ -91,8 +97,9 @@ class Node : public std::enable_shared_from_this<Node>
         std::weak_ptr<Node> parent;
         std::vector<std::shared_ptr<Node>> children;
         double t;
-        double value; // == t
         int n;
+        double prior;
+        size_t action;
 };
 
 // Initialize node library 
