@@ -1,8 +1,9 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <mcts/node.hpp>
-#include <mcts/misc.hpp>
+#include "node.hpp"
+#include "misc.hpp"
+
 #include <chess/chess.hpp>
 #include <memory>
 #include <string>

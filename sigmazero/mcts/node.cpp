@@ -1,10 +1,8 @@
 
-#include "./node.hpp"
-#include "./network.hpp"
+#include "node.hpp"
 #include <chess/chess.hpp>
-#include <mcts/rollout.hpp>
-#include <mcts/policy.hpp>
-#include <mcts/misc.hpp>
+#include "misc.hpp"
+#include "network.hpp"
 #include <random>
 #include <vector>
 #include <memory>
@@ -130,7 +128,7 @@ std::shared_ptr<Node> Node::best_child() const
 }
 
 std::vector<double> Node::action_distribution(size_t num_actions){
-    std::vector<double> distribution{num_actions, 0.0};
+    std::vector<double> distribution(num_actions, 0.0);
     size_t tot_visits = 0;
     for (std::shared_ptr<Node> child : children){
         distribution[child->action] = child->n;
