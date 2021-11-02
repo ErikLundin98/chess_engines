@@ -7,7 +7,7 @@
 Network::Evaluation Network::evaluate(chess::position& state){
     // Do some torch stuff
     Network::Evaluation result;
-    double val = 2000;
+    double val = 0.5;
     std::vector<double> action_logits(64*73, 42);
     
     
