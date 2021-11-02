@@ -1,5 +1,6 @@
 #include "./mcts_model.hpp"
 #include <mcts/node.hpp>
+#include "network.hpp"
 #include <mcts/misc.hpp>
 #include <mcts/rollout.hpp>
 #include <mcts/policy.hpp>
