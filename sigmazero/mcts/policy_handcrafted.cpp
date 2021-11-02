@@ -8,7 +8,7 @@
 #include <algorithm>
 
 
-namespace policy
+namespace mcts
 {
 
 chess::move HandcraftedPolicy::operator() (chess::position state) {

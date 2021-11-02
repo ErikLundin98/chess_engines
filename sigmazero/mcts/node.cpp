@@ -6,14 +6,14 @@
 #include <random>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
-namespace node
+namespace mcts
 {    
 
 // Used to create a node that is not a parent node
-Node::Node(chess::position state, chess::side player_side, bool is_start_node, std::weak_ptr<Node> parent, chess::move move)
+Node::Node(chess::position state, bool is_start_node, std::weak_ptr<Node> parent, chess::move move)
     : state{state},
-    player_side{player_side},
     is_start_node{is_start_node},
     parent{parent},
     move{move}
@@ -23,53 +23,42 @@ Node::Node(chess::position state, chess::side player_side, bool is_start_node, s
     this->n = 0;
 }
 // Used to create a parent node
-Node::Node(chess::position state, chess::side player_side) : Node(state, player_side, true, std::weak_ptr<Node>(), chess::move()) {}
-
-// Perform rollout from state
-void Node::rollout(rollout_type rollout_method, policy_type policy)
-{
-    t = rollout_method(state, player_side, policy);
-    n++;
-}
+Node::Node(chess::position state) : Node(state, true, std::weak_ptr<Node>(), chess::move()) {}
 
 // Backpropagate score and visits to parent node
-void Node::backpropagate()
+void Node::backpropagate(double value)
 {
+    t += value;
+    n++;
+    if (is_start_node){
+        return;
+    }
     if (auto p = parent.lock())
     {
-        p->t += t;
-        p->n++;
-
-        if (!p->is_start_node)
-        {
-            p->backpropagate();
-        }
+        p->backpropagate(-value);
     }
 }
 
+double Node::get_terminal_value() const{
+    return state.is_checkmate() ? -WIN_SCORE : DRAW_SCORE;
+}
+
 // Expand node
-void Node::expand(Network::Evaluation evaluation)
+void Node::expand(const std::unordered_map<size_t, double>& action_probabilities)
 {   
-    for (auto action_prob: evaluation.action_probabilities)
+    for (auto action_prob: action_probabilities)
     {
         chess::move child_move = Network::move_from_action(action_prob.first);
         chess::position child_state = state.copy_move(child_move); // TODO - Make this optional
-        std::shared_ptr<Node> new_child = std::make_shared<Node>(child_state, player_side, false, weak_from_this(), child_move);
+        std::shared_ptr<Node> new_child = std::make_shared<Node>(child_state, false, weak_from_this(), child_move);
         new_child->prior = action_prob.second;
-        // if (new_child->state.is_checkmate() || new_child->state.is_stalemate())
-        // {
-        //     if (new_child->state.is_checkmate())
-        //     {
-        //         new_child->t = new_child->state.get_turn() == player_side ? -WIN_SCORE : WIN_SCORE;
-        //     }
-        //     else
-        //     {
-        //         new_child->t = DRAW_SCORE;
-        //     }
-        //     new_child->is_terminal_node = true;
-        //     new_child->n = 1;
-        //     new_child->backpropagate();
-        // }
+        new_child->action = action_prob.first;
+        if (new_child->is_over())
+        {
+            new_child->t = new_child->get_terminal_value();
+            new_child->is_terminal_node = true;
+            new_child->n = 1;
+        }
         children.push_back(new_child);
     }
 }
@@ -81,7 +70,7 @@ void Node::initialize_value(double value){
 
 void Node::add_exploration_noise(double dirichlet_alpha, double exploration_factor){
     std::default_random_engine generator;
-    std::gamma_distribution<double> gamma_distribution(alpha, 1.0);
+    std::gamma_distribution<double> gamma_distribution(dirichlet_alpha, 1.0);
     for (std::shared_ptr<Node> child : children){
         double noise = gamma_distribution(generator);
         child->prior = child->prior * (1 - exploration_factor) + exploration_factor * noise;
@@ -91,16 +80,13 @@ void Node::add_exploration_noise(double dirichlet_alpha, double exploration_fact
 // Determine next node to expand/rollout by traversing tree
 std::shared_ptr<Node> Node::traverse()
 {
+    // TODO:
     std::vector<double> UCB1_scores{};
     for (std::shared_ptr<Node> child : children)
     {
-        if (!child->is_terminal_node)
-            UCB1_scores.push_back(child->UCB1());
-    }
-    if (UCB1_scores.size() == 0)
-    {
-        is_terminal_node = true;
-        return parent.lock() ? parent.lock() : shared_from_this();
+        // TODO: This should stop from traversing and ending up in terminal node
+        // if (!child->is_terminal_node)
+        UCB1_scores.push_back(child->UCB1());
     }
 
     std::shared_ptr<Node> best_child = get_max_element<std::shared_ptr<Node>>(children.begin(), UCB1_scores.begin(), UCB1_scores.end());
@@ -187,15 +173,11 @@ std::string Node::to_string(int layers_left) const
 }
 
 
+
 double Node::WIN_SCORE = 1.0;
 double Node::DRAW_SCORE = 0.0;
-double Node::UCB1_CONST = 2.0;
-
-void init(double win_score, double draw_score, double UCB1_const) {
-    Node::WIN_SCORE = win_score;
-    Node::DRAW_SCORE = draw_score;
-    Node::UCB1_CONST = UCB1_const;
-};
-
+double Node::pb_c_base = 19652;
+double Node::pb_c_init = 1.25;
+    
 }
 

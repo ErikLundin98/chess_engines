@@ -3,8 +3,9 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cmath>
+namespace mcts {
 
-Network::Evaluation Network::evaluate(chess::position& state){
+Network::Evaluation Network::evaluate(chess::position& state) const{
     // Do some torch stuff
     Network::Evaluation result;
     double val = 0.5;
@@ -68,8 +69,10 @@ size_t Network::action_from_move(chess::position state, chess::move& move) {
 
 chess::move Network::move_from_action(size_t action) {
     size_t to_val = action>>6;
-    chess::square from(action ^ (to_val << 6));
-    chess::square to(to_val);
+    chess::square from =  static_cast<chess::square>(action ^ (to_val << 6));
+    chess::square to =  static_cast<chess::square>(to_val);
     chess::move move{from, to};
     return move;
+}
+
 }

@@ -3,24 +3,22 @@
 
 #include "network.hpp"
 #include <chess/chess.hpp>
-#include "rollout.hpp"
-#include "policy.hpp"
 #include "misc.hpp"
 #include <vector>
 #include <float.h>
 #include <memory>
 
-namespace node
+namespace mcts
 {    
 class Node : public std::enable_shared_from_this<Node>
 {
 
     public:
         // Used to create a node that is not a parent node
-        Node(chess::position state, chess::side player_side, bool is_start_node, std::weak_ptr<Node> parent, chess::move move);
+        Node(chess::position state, bool is_start_node, std::weak_ptr<Node> parent, chess::move move);
 
         // Used to create a parent node
-        Node(chess::position state, chess::side player_side);
+        Node(chess::position state);
         ~Node() = default;
         // Get child nodes
         inline std::vector<std::shared_ptr<Node>> get_children() const
@@ -30,14 +28,19 @@ class Node : public std::enable_shared_from_this<Node>
 
 
         // Backpropagate score and visits to parent node
-        void backpropagate();
+        void backpropagate(double value);
 
         // Expand node
-        void expand(Network::Evaluation evaluation)
+        void expand(const std::unordered_map<size_t, double>& action_probabilities);
 
         void initialize_value(double value);
 
         void add_exploration_noise(double dirichlet_alpha, double exploration_factor);
+
+        double get_value() const;
+
+        double get_terminal_value() const;
+
 
         // UCB1 scoring function
         inline double UCB1() const
@@ -54,8 +57,11 @@ class Node : public std::enable_shared_from_this<Node>
                 double explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
                 explore_factor *= sqrt(N) / (n + 1);
 
-                prior_score = explore_factor * prior;
-                value_score = get_value();
+                double prior_score = explore_factor * prior;
+                double value_score = -get_value();
+                // Negative value score because UCB is useful from the perspective
+                // of the parent. The parent want's the child to be in a bad position, because the child
+                // is the opponents turn.
                 return prior_score + value_score; 
             }
         }
@@ -87,19 +93,19 @@ class Node : public std::enable_shared_from_this<Node>
 
         static double WIN_SCORE;
         static double DRAW_SCORE;
-        static double UCB1_CONST;
+        static double pb_c_base;
+        static double pb_c_init;
 
-    public: // Bad, but hate private stuff
-        double pb_c_base = 19652, pb_c_init = 1.25;
+    private: // Bad, but hate private stuff
+        
         chess::position state;
-        chess::side player_side;
         chess::move move;
         bool is_start_node;
         bool is_terminal_node = false;
         std::weak_ptr<Node> parent;
         std::vector<std::shared_ptr<Node>> children;
-        double t;
-        int n;
+        double t = 0.0;
+        int n = 0;
         double prior;
         size_t action;
 };
@@ -107,7 +113,7 @@ class Node : public std::enable_shared_from_this<Node>
 // Initialize node library 
 // Sets reward scores
 // Not necessary unless modifying scores is desired
-void init(double win_score, double draw_score, double UCB1_const);
+
 } //namespace node
 
 #endif /* NODE_H */

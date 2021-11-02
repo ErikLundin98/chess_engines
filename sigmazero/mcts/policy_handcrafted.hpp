@@ -6,7 +6,7 @@
 #include <random>
 
 
-namespace policy
+namespace mcts
 {
 
 class HandcraftedPolicy : public Policy {
@@ -19,9 +19,9 @@ class HandcraftedPolicy : public Policy {
     HandcraftedPolicy(std::mt19937 &generator, bool deterministic=false, bool look_ahead=false) :
         generator{generator}, deterministic{deterministic}, look_ahead{look_ahead} {}
     chess::move operator() (chess::position state) override;
+    std::vector<double> softmax_distribution(std::vector<double> values);
 
     private:
-    std::vector<double> softmax_distribution(std::vector<double> values);
     double get_value_after_move(chess::position &state, const chess::move& move);
     double get_value(chess::position &state, const chess::move& move);
 };

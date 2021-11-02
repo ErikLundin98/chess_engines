@@ -4,6 +4,7 @@
 #include <chess/chess.hpp>
 #include <unordered_map>
 #include <algorithm>
+namespace mcts {
 
 struct Network {
     struct Evaluation {
@@ -11,7 +12,7 @@ struct Network {
         std::unordered_map<size_t, double> action_probabilities;
     };
     
-    Evaluation evaluate(chess::position& state);
+    Evaluation evaluate(chess::position& state) const;
 
     // SHOULD EXIST SIMPLER WAY, DO LATER
     static size_t action_from_move(chess::position state, chess::move& move);
@@ -21,5 +22,6 @@ struct Network {
 
 };
 
+}
 
 #endif // NETWORK_H
