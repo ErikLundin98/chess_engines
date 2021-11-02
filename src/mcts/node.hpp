@@ -1,6 +1,7 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include "network.hpp"
 #include <chess/chess.hpp>
 #include <mcts/rollout.hpp>
 #include <mcts/policy.hpp>
@@ -13,6 +14,7 @@ namespace node
 {    
 class Node : public std::enable_shared_from_this<Node>
 {
+
     public:
         // Used to create a node that is not a parent node
         Node(chess::position state, chess::side player_side, bool is_start_node, std::weak_ptr<Node> parent, chess::move move);
@@ -26,16 +28,16 @@ class Node : public std::enable_shared_from_this<Node>
             return this->children;
         }
 
-        // Perform rollout from state
-        void rollout(rollout_type rollout_method, policy_type policy);
 
         // Backpropagate score and visits to parent node
         void backpropagate();
 
         // Expand node
-        void expand();
+        void expand(Network::Evaluation evaluation)
 
         void initialize_value(double value);
+
+        void add_exploration_noise(double dirichlet_alpha, double exploration_factor);
 
         // UCB1 scoring function
         inline double UCB1() const
@@ -48,9 +50,8 @@ class Node : public std::enable_shared_from_this<Node>
             else
             {
                 int N = p ? p->n : 1;
-                double pb_c_base, pb_c_init;
 
-                explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
+                double explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
                 explore_factor *= sqrt(N) / (n + 1);
 
                 prior_score = explore_factor * prior;
@@ -89,6 +90,7 @@ class Node : public std::enable_shared_from_this<Node>
         static double UCB1_CONST;
 
     public: // Bad, but hate private stuff
+        double pb_c_base = 19652, pb_c_init = 1.25;
         chess::position state;
         chess::side player_side;
         chess::move move;

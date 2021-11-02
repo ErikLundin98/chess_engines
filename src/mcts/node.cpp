@@ -5,6 +5,7 @@
 #include <mcts/rollout.hpp>
 #include <mcts/policy.hpp>
 #include <mcts/misc.hpp>
+#include <random>
 #include <vector>
 #include <memory>
 
@@ -75,9 +76,18 @@ void Node::expand(Network::Evaluation evaluation)
     }
 }
 
-void initialize_value(double value){
+void Node::initialize_value(double value){
     t = value;
     n = 1;
+}
+
+void Node::add_exploration_noise(double dirichlet_alpha, double exploration_factor){
+    std::default_random_engine generator;
+    std::gamma_distribution<double> gamma_distribution(alpha, 1.0);
+    for (std::shared_ptr<Node> child : children){
+        double noise = gamma_distribution(generator);
+        child->prior = child->prior * (1 - exploration_factor) + exploration_factor * noise;
+    }
 }
 
 // Determine next node to expand/rollout by traversing tree
