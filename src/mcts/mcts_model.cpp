@@ -14,7 +14,7 @@ namespace mcts_model
         : model_side{model_side}
     {}
 
-    void initialize_node(Node& node){
+    void Model::initialize_node(Node& node){
         Network network;
         Network::Evaluation result = network.evaluate();
         node->expand(result);

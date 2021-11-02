@@ -22,7 +22,4 @@ struct Network {
 };
 
 
-
-
-
 #endif // NETWORK_H

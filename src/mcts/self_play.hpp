@@ -5,11 +5,12 @@
 #include "./node.hpp"
 
 #include <vector>
+namespace config {
+    size_t num_actions = 64*73;
+    size_t max_iter = 800;
+    size_t MAX_MOVES = 500;
+}
 
-
-size_t num_actions = 64*73;
-size_t max_iter = 800;
-size_t MAX_MOVES = 500;
 
 struct SelfPlayWorker{
 

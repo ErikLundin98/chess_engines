@@ -16,6 +16,7 @@ namespace mcts_model
         Model(chess::side model_side);
 
         virtual chess::move search(chess::position state, int max_iter);
+        void initialize_node(Node& node);
         chess::side model_side;
     };
     // // Tracks time spent on different steps of MCTS search

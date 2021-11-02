@@ -6,7 +6,7 @@
 
 Network::Evaluation Network::evaluate(chess::position& state){
     // Do some torch stuff
-    Evaluation result;
+    Network::Evaluation result;
     double val = 2000;
     std::vector<double> action_logits(64*73, 42);
     
@@ -26,7 +26,7 @@ Network::Evaluation Network::evaluate(chess::position& state){
     }
     return result;
     
-    }
+}
 
     // SHOULD EXIST SIMPLER WAY, DO LATER
 size_t Network::action_from_move(chess::position state, chess::move& move) {
