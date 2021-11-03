@@ -3,16 +3,36 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cmath>
+
+#define HANDCRAFTED_NETWORK
+#ifdef HANDCRAFTED_NETWORK
+#include <eval/eval.hpp>
+#endif
+
 namespace mcts {
 
 Network::Evaluation Network::evaluate(chess::position& state) const{
     // Do some torch stuff
     Network::Evaluation result;
     double val = 0.5;
-    std::vector<double> action_logits(64*73, 42);
-    
-    
+    std::vector<double> action_logits(1<<12, 42);
     result.value = val;
+    #ifdef HANDCRAFTED_NETWORK
+    {
+
+        result.value = eval::evaluate(state);
+        action_logits = std::vector<double>(action_logits.size(), 0.0);
+        std::vector<chess::move> moves{state.moves()};
+        double exp_sum = 0.0;
+        for (const chess::move& move: moves) {
+            chess::undo undo = state.make_move(move);
+            double value = -eval::evaluate(state);
+            state.undo_move(move, undo);
+            size_t action = action_from_move(state, move);
+            action_logits[action] = value;
+        }
+    }
+    #endif
     // Softmax legal moves
     std::vector<chess::move> legal_moves{state.moves()};
     double exp_sum = 0.0;
@@ -30,7 +50,7 @@ Network::Evaluation Network::evaluate(chess::position& state) const{
 }
 
     // SHOULD EXIST SIMPLER WAY, DO LATER
-size_t Network::action_from_move(chess::position state, chess::move& move) {
+size_t Network::action_from_move(const chess::position& state, const chess::move& move) {
     return move.from + (move.to << 6);
     // // <pos_on_board..> | <x_delta..> | <y_delta..> | <knight_moves> | <underprom_type..>
     // const knight[][] knight_yx = {}

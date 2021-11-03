@@ -101,16 +101,16 @@ std::shared_ptr<Node> Node::traverse()
     }
 }
 
-// Retrieve the best child node based on UCB1 score
-// Can be useful if we want to keep the tree from the previous iterations
+// Retrieve the best child node based on number of visits (From the alpha zero pseudo code)
 std::shared_ptr<Node> Node::best_child() const
 {
-    std::vector<double> winrates{};
+
+    std::vector<size_t> num_visits{};
     for (std::shared_ptr<Node> child : children)
     {
-        winrates.push_back(child->t);
+        num_visits.push_back(child->n);
     }
-    return get_max_element<std::shared_ptr<Node>>(children.begin(), winrates.begin(), winrates.end());
+    return get_max_element<std::shared_ptr<Node>>(children.begin(), num_visits.begin(), num_visits.end());
 }
 
 std::vector<double> Node::action_distribution(size_t num_actions){

@@ -126,5 +126,5 @@ selfplay_src = [
 selfplay_dummy = executable(
 	'selfplay_dummy',
 	selfplay_src,
-	dependencies : [libchess_dep]
+	dependencies : [libchess_dep, handcrafted_dep]
 )
