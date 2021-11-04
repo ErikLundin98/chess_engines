@@ -18,7 +18,7 @@ struct Network {
     static size_t action_from_move(const chess::position& state, const chess::move& move);
 
 
-    static chess::move move_from_action(size_t action);
+    static chess::move move_from_action(const chess::position& state, size_t action);
 
 };
 

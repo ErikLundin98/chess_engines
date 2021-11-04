@@ -48,7 +48,7 @@ void Node::expand(const std::unordered_map<size_t, double>& action_probabilities
 {   
     for (auto action_prob: action_probabilities)
     {
-        chess::move child_move = Network::move_from_action(action_prob.first);
+        chess::move child_move = Network::move_from_action(state, action_prob.first);
         chess::position child_state = state.copy_move(child_move); // TODO - Make this optional
         std::shared_ptr<Node> new_child = std::make_shared<Node>(child_state, false, weak_from_this(), child_move);
         new_child->prior = action_prob.second;

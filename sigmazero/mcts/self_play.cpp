@@ -50,7 +50,7 @@ void SelfPlayWorker::print_row(const SelfPlayWorker::GameRow& row) {
         auto p = action_values[n-i];
         double value = p.first;
         size_t action = p.second;
-        chess::move move = mcts::Network::move_from_action(action);
+        chess::move move = mcts::Network::move_from_action(row.state, action);
         std::cout << "(" << move.to_lan() << ", " << value << ") - ";
     }
     std::cout << std::endl;
