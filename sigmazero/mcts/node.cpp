@@ -67,7 +67,7 @@ namespace mcts
             double prior_score = explore_factor * prior;
             double value_score = -get_value();
             // Negative value score because UCB is useful from the perspective
-            // of the parent. The parent want's the child to be in a bad position, because the child
+            // of the parent. The parent wants the child to be in a bad position, because the child
             // is the opponents turn.
             return prior_score + value_score;
         }
@@ -113,13 +113,10 @@ namespace mcts
     // Determine next node to expand/rollout by traversing tree
     std::shared_ptr<Node> Node::traverse()
     {
-        // TODO:
         std::vector<double> UCB1_scores{};
         for (std::shared_ptr<Node> child : children)
         {
-            // TODO: This should stop from traversing and ending up in terminal node
-            // if (!child->is_terminal_node)
-            UCB1_scores.push_back(child->UCB1());
+            UCB1_scores.push_back(child->is_terminal_node ? 0.0 : child->UCB1());
         }
 
         std::shared_ptr<Node> best_child = get_max_element<std::shared_ptr<Node>>(children.begin(), UCB1_scores.begin(), UCB1_scores.end());
