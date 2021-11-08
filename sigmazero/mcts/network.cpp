@@ -18,7 +18,7 @@ Network::Evaluation Network::evaluate(chess::position& state) const{
     // Do some torch stuff
     Network::Evaluation result;
     double val = 0.5;
-    std::vector<double> action_logits(1<<12, 42);
+    std::vector<double> action_logits(64*73, 42);
     result.value = val;
     #ifdef HANDCRAFTED_NETWORK
     {

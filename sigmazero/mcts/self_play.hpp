@@ -9,7 +9,7 @@
 
 
 struct SelfPlayWorker{
-    size_t num_actions = 1<<12;//64*73;
+    size_t num_actions = 64*73;
     size_t max_iter = 800;
     size_t max_moves = 500;
 

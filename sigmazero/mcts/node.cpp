@@ -62,10 +62,10 @@ void Node::expand(const std::unordered_map<size_t, double>& action_probabilities
         children.push_back(new_child);
     }
 }
-
-void Node::initialize_value(double value){
-    t = value;
-    n = 1;
+void Node::explore_and_set_priors(const Network &network) {
+    Network::Evaluation result = network.evaluate(state);
+    expand(result.action_probabilities);
+    backpropagate(result.value);
 }
 
 void Node::add_exploration_noise(double dirichlet_alpha, double exploration_factor){

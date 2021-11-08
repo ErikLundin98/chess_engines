@@ -33,7 +33,8 @@ class Node : public std::enable_shared_from_this<Node>
         // Expand node
         void expand(const std::unordered_map<size_t, double>& action_probabilities);
 
-        void initialize_value(double value);
+
+        void explore_and_set_priors(const Network &network);
 
         void add_exploration_noise(double dirichlet_alpha, double exploration_factor);
 
