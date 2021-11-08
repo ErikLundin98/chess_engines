@@ -25,7 +25,7 @@ class Node : public std::enable_shared_from_this<Node>
         void backpropagate(double value);
         // Expand node
         void expand(const std::unordered_map<size_t, double>& action_probabilities);
-        void explore_and_set_priors(const Network &network);
+        void explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation);
         void add_exploration_noise(double dirichlet_alpha, double exploration_factor);
         double get_value() const;
         double get_terminal_value() const;

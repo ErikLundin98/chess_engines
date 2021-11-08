@@ -91,11 +91,10 @@ namespace mcts
             children.push_back(new_child);
         }
     }
-    void Node::explore_and_set_priors(const Network &network)
+    void Node::explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation)
     {
-        Network::Evaluation result = network.evaluate(state);
-        expand(result.action_probabilities);
-        backpropagate(result.value);
+        expand(evaluation.second);
+        backpropagate(evaluation.first);
     }
 
     void Node::add_exploration_noise(double dirichlet_alpha, double exploration_factor)

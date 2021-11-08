@@ -42,7 +42,10 @@ public:
 
     std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
 
-    torch::Tensor encode_input(const chess::game& g);
+    //torch::Tensor encode_input(const chess::game& g) const;
+    torch::Tensor encode_input(const chess::position& p) const;
+    std::pair<double, std::unordered_map<size_t, double>> evaluate(const chess::position& p) const; //TODO
+    chess::move decode_output(torch::Tensor output) const; //TODO
 
     int get_input_channels() const;
 };
@@ -50,5 +53,6 @@ public:
 torch::Tensor sigma_loss(torch::Tensor z, torch::Tensor v, torch::Tensor pi, torch::Tensor p);
 
 torch::Tensor bitboard_plane(chess::bitboard bb);
+
 
 #endif
