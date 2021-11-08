@@ -21,10 +21,7 @@ class Node : public std::enable_shared_from_this<Node>
         Node(chess::position state);
         ~Node() = default;
         // Get child nodes
-        inline std::vector<std::shared_ptr<Node>> get_children() const
-        {
-            return this->children;
-        }
+        std::vector<std::shared_ptr<Node>> get_children() const;
 
 
         // Backpropagate score and visits to parent node
@@ -44,28 +41,7 @@ class Node : public std::enable_shared_from_this<Node>
 
 
         // UCB1 scoring function
-        inline double UCB1() const
-        {
-            auto p = parent.lock();
-            if (n == 0 || (p && p->n==0))
-            {
-                return DBL_MAX;
-            }
-            else
-            {
-                int N = p ? p->n : 1;
-
-                double explore_factor = log((N + pb_c_base + 1)/pb_c_base) + pb_c_init;
-                explore_factor *= sqrt(N) / (n + 1);
-
-                double prior_score = explore_factor * prior;
-                double value_score = -get_value();
-                // Negative value score because UCB is useful from the perspective
-                // of the parent. The parent want's the child to be in a bad position, because the child
-                // is the opponents turn.
-                return prior_score + value_score; 
-            }
-        }
+        double UCB1() const;
 
         // Determine next node to expand/rollout by traversing tree
         std::shared_ptr<Node> traverse();
