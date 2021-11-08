@@ -79,11 +79,12 @@ class Node : public std::enable_shared_from_this<Node>
         double t = 0.0;
         int n = 0;
 
-        std::weak_ptr<Node> parent;
-        std::vector<std::shared_ptr<Node>> children;
         chess::position state;
-        chess::move move;
         bool is_start_node;
+        std::weak_ptr<Node> parent;
+        chess::move move;
+
+        std::vector<std::shared_ptr<Node>> children;
         double prior;
         size_t action;
 };
