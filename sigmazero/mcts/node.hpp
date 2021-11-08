@@ -73,16 +73,17 @@ class Node : public std::enable_shared_from_this<Node>
         static double pb_c_base;
         static double pb_c_init;
 
-    private: // Bad, but hate private stuff
-        
+    private:
+
+        bool is_terminal_node = false;
+        double t = 0.0;
+        int n = 0;
+
+        std::weak_ptr<Node> parent;
+        std::vector<std::shared_ptr<Node>> children;
         chess::position state;
         chess::move move;
         bool is_start_node;
-        bool is_terminal_node = false;
-        std::weak_ptr<Node> parent;
-        std::vector<std::shared_ptr<Node>> children;
-        double t = 0.0;
-        int n = 0;
         double prior;
         size_t action;
 };
