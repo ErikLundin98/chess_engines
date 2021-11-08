@@ -10,7 +10,6 @@
 
 namespace mcts
 {
-
     // Used to create a node that is not a parent node
     Node::Node(chess::position state, bool is_start_node, std::weak_ptr<Node> parent, chess::move move)
         : state{state},
@@ -134,7 +133,6 @@ namespace mcts
     // Retrieve the best child node based on number of visits (From the alpha zero pseudo code)
     std::shared_ptr<Node> Node::best_child() const
     {
-
         std::vector<size_t> num_visits{};
         for (std::shared_ptr<Node> child : children)
         {
@@ -143,6 +141,7 @@ namespace mcts
         return get_max_element<std::shared_ptr<Node>>(children.begin(), num_visits.begin(), num_visits.end());
     }
 
+    // Returns the labels for the policy head
     std::vector<double> Node::action_distribution(size_t num_actions)
     {
         std::vector<double> distribution(num_actions, 0.0);
