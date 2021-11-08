@@ -52,45 +52,72 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	// UCI setup
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
-	std::vector<chess::move> best = {moves[0]};
+	std::vector<chess::move> best;
 	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-	int current_depth = 1;
 
-	// Minmax search
-	std::unordered_map<size_t, double> pos_scores;
-
-	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
-
-	int eval_depth = 2; // TODO: iterative deepening
-
+	// Iterative deepening setup
 	double inf = std::numeric_limits<double>::infinity();
-	double val = minmax::rec_minmax(root, true, -inf, inf, eval_depth, own_side, pos_scores, info, stop, start_time, max_time);
+	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
+	std::unordered_map<size_t, double> prev_scores;
 
-    double max_val = -inf;
+	// Iterative deepening
+	for (int eval_depth = 1; true; eval_depth++) {
+		// Set info
+		info.depth(eval_depth);
+		info.nodes(prev_scores.size());
 
-    chess::move max_m;
-	chess::position p;
-    for (chess::move m : root.moves()) {
-		p = root.copy_move(m);
-        size_t p_hash = p.hash();
-        if (pos_scores.count(p_hash) >= 1) {
-            double p_val = pos_scores[p_hash];
+		// Set search datastructures
+		std::unordered_map<size_t, double> pos_scores;
+		best.clear();
+		
+		double val = minmax::rec_minmax(root, root, true, -inf, inf, 0, eval_depth, own_side, pos_scores, prev_scores, info, stop, start_time, max_time);
 
-            // std::cout << "num moves at hash: " << pos_scores.count(pos_hash) << " move:" << m.to_lan() << " score: " << pos_val << std::endl;
+		// Trace back and find the best line
+		chess::position curr = root;
+		chess::position p;
+		for (int i = 0; i < eval_depth; i++) {
+			bool found = false;
+			for (chess::move m : curr.moves()) {
 
-            if (p_val > max_val) {
-                max_val = p_val;
-                max_m = m;
-            }
-        }
-    }
+				p = root.copy_move(m);
+				size_t p_hash = p.hash();
 
-	best[0] = max_m;
+				if (pos_scores.count(p_hash) >= 1) {
+					if (pos_scores[p_hash] == val) {
+						best.push_back(m);
+						curr = p;
+
+						found = true;
+						break;
+					}
+				}
+			}
+
+			if (!found) {
+				break;
+			}
+
+		}
+		info.line(best);
+
+		// Check if enough time has passed
+        auto current_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_time = current_time - start_time;
+		if (stop || elapsed_time.count() > max_time) {
+			break;
+		}
+
+		prev_scores = pos_scores;
+	}
+
+	if (best.empty()) {
+		best.push_back(moves[0]);
+	}
 
 	return {best.front(), std::nullopt};
 }
-	/*
+	
 
 
 	while(!stop)
@@ -153,7 +180,7 @@ done: // se ovan
 	return {best.front(), std::nullopt};
 }
 
-*/
+
 
 void alpha_beta_engine::reset()
 {

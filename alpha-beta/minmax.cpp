@@ -30,28 +30,32 @@ namespace minmax {
 
     bool sort_ascending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
     {
-    return p1.first < p2.first;
+        return p1.first < p2.first;
     }
 
     bool sort_descending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
     {
-    return p1.first > p2.first;
+        return p1.first > p2.first;
     }
 
-    double rec_minmax(const chess::position& pos, bool max_node, double alpha, double beta, int depth_left, const chess::side own_side, std::unordered_map<size_t, double>& pos_scores, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, float max_time) 
+    double rec_minmax(const chess::position& pos, const chess::position& root, bool max_node, double alpha, double beta, int curr_depth, int max_depth, const chess::side own_side, std::unordered_map<size_t, double>& pos_scores, std::unordered_map<size_t, double>& prev_scores, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, float max_time) 
     {
         size_t pos_hash = pos.hash();
+        bool first_search = pos_hash == root.hash();
 
         double pos_val;
 
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_time = current_time - start_time;
 
-        if (pos_scores.count(pos_hash) >= 1) {              
+        if (pos_scores.count(pos_hash) >= 1) {             
+            // Already in transposition table 
             pos_val = pos_scores[pos_hash];
 
         } else if (pos.is_checkmate()) {
             if (pos.get_turn() == own_side) {
+                info.mate(pos.fullmove() - root.fullmove());
+
                 pos_val = std::numeric_limits<double>::infinity();
             } else {
                 pos_val = -std::numeric_limits<double>::infinity();
@@ -60,22 +64,36 @@ namespace minmax {
         } else if (pos.is_stalemate()) {
             pos_val = 0;
 
-        } else if (depth_left == 0 || stop || elapsed_time.count() > max_time) {
-            // Evaluate if we are at eval depth or if we should finish the search
+        } else if (curr_depth == max_depth) {
+            // Evaluate if we are at eval depth
             pos_val = estimate_score(pos, own_side);
-
+        } else if (stop || elapsed_time.count() > max_time) {
+            // Stop search
+            if (prev_scores.count(pos_hash) >= 1) {
+                pos_val = prev_scores[pos_hash];
+            } else {
+                pos_val = estimate_score(pos, own_side);
+            }
         } else {
 
-            std::vector<std::pair<double, chess::position>> moves_scores;
-            //std::vector<std::pair<double, chess::move>> moves_memes;
+            std::vector<std::pair<double, chess::position>> n_pos_scores;
+            std::vector<std::pair<double, chess::move>> n_moves_scores;
             int i = 0;
             for (chess::move m : pos.moves()) {
-                moves_scores.push_back(std::make_pair(0, pos.copy_move(m)));
-                double val = estimate_score(std::get<1>(moves_scores[i]), own_side);
+                n_pos_scores.push_back(std::make_pair(0, pos.copy_move(m)));
+
+                // Use estimate from previous search if there is any
+                size_t n_hash = std::get<1>(n_pos_scores[i]).hash();
+                if (prev_scores.count(n_hash) >= 1) {
+                    n_pos_scores[i].first = prev_scores[n_hash];
+                } else {
+                    n_pos_scores[i].first = estimate_score(std::get<1>(n_pos_scores[i]), own_side);
+                }
                 
-                //moves_memes.push_back(std::make_pair(0, m));
-                //moves_memes[i].first = val;
-                moves_scores[i].first = val;
+
+                if (first_search) {
+                    n_moves_scores.push_back(std::make_pair(n_pos_scores[i].first, m));
+                }
 
                 i++;
             }
@@ -85,13 +103,22 @@ namespace minmax {
                 // MAX
 
                 // Sort elements in descending eval order
-                sort(moves_scores.begin(), moves_scores.end(), sort_descending);
-                // sort(moves_memes.begin(), moves_memes.end(), sort_descending);
+                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_descending);
+
+                if (first_search) {
+                    sort(n_moves_scores.begin(), n_moves_scores.end(), sort_descending);
+                }
 
                 pos_val = -std::numeric_limits<double>::infinity();
-                for (const auto& move_score : moves_scores) {
+
+                int move_i = 0;
+                for (const auto& score_pos : n_pos_scores) {
+
+                    if (first_search) {
+                        info.move(std::get<1>(n_moves_scores[move_i]), move_i);
+                    }
                     
-                    double child_val = rec_minmax(std::get<1>(move_score), false, alpha, beta, depth_left-1, own_side, pos_scores, info, stop, start_time, max_time);
+                    double child_val = rec_minmax(std::get<1>(score_pos), root, false, alpha, beta, curr_depth+1, max_depth, own_side, pos_scores, prev_scores, info, stop, start_time, max_time);
 
                     pos_val = std::max(pos_val, child_val);
 
@@ -100,18 +127,19 @@ namespace minmax {
                     }
 
                     alpha = std::max(pos_val, alpha);
+
+                    move_i++;
                 }
             } else {
                 // MIN
 
                 // Sort elements in ascending eval order
-                sort(moves_scores.begin(), moves_scores.end(), sort_ascending);
-                //sort(moves_memes.begin(), moves_memes.end(), sort_ascending);
+                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_ascending);
 
                 pos_val = std::numeric_limits<double>::infinity();
-                for (const auto& move_score : moves_scores) {
+                for (const auto& score_pos : n_pos_scores) {
                     
-                    double child_val = rec_minmax(std::get<1>(move_score), true, alpha, beta, depth_left-1, own_side, pos_scores, info, stop, start_time, max_time);
+                    double child_val = rec_minmax(std::get<1>(score_pos), root, true, alpha, beta, curr_depth+1, max_depth, own_side, pos_scores, prev_scores, info, stop, start_time, max_time);
 
                     pos_val = std::min(pos_val, child_val);
 
