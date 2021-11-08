@@ -69,3 +69,18 @@ example = executable(
 	include_directories : [common_inc, torch_inc],
 	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
+
+# alpha beta engine
+
+alpha_beta_src = [
+	'alpha-beta/main.cpp',
+	'alpha-beta/alpha_beta_engine.cpp',
+	'alpha-beta/minmax.cpp'
+]
+
+alpha_beta = executable(
+	'alpha_beta',
+	common_src + alpha_beta_src,
+	include_directories : [common_inc, torch_inc],
+	dependencies : [libchess_dep, thread_dep, torch_dep]
+)

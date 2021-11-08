@@ -2,11 +2,13 @@
 #include <vector>
 #include <atomic>
 #include <chrono>
+#include <optional>
 
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
 #include "alpha_beta_engine.hpp"
+#include "minmax.hpp"
 
 
 
@@ -47,12 +49,49 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 {
 	info.message("search started");
 
+	// UCI setup
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
 	std::vector<chess::move> best = {moves[0]};
 	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
-	auto start_time = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 	int current_depth = 1;
+
+	// Minmax search
+	std::unordered_map<size_t, double> pos_scores;
+
+	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
+
+	int eval_depth = 2; // TODO: iterative deepening
+
+	double inf = std::numeric_limits<double>::infinity();
+	double val = minmax::rec_minmax(root, true, -inf, inf, eval_depth, own_side, pos_scores, info, stop, start_time, max_time);
+
+    double max_val = -inf;
+
+    chess::move max_m;
+	chess::position p;
+    for (chess::move m : root.moves()) {
+		p = root.copy_move(m);
+        size_t p_hash = p.hash();
+        if (pos_scores.count(p_hash) >= 1) {
+            double p_val = pos_scores[p_hash];
+
+            // std::cout << "num moves at hash: " << pos_scores.count(pos_hash) << " move:" << m.to_lan() << " score: " << pos_val << std::endl;
+
+            if (p_val > max_val) {
+                max_val = p_val;
+                max_m = m;
+            }
+        }
+    }
+
+	best[0] = max_m;
+
+	return {best.front(), std::nullopt};
+}
+	/*
+
 
 	while(!stop)
 	{
@@ -113,6 +152,8 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 done: // se ovan
 	return {best.front(), std::nullopt};
 }
+
+*/
 
 void alpha_beta_engine::reset()
 {
