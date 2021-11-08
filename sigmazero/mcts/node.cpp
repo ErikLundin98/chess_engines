@@ -188,11 +188,12 @@ namespace mcts
         return n != 0 ? t / n : 0.0;
     }
 
-    // Print the main node and its children
-    std::string Node::to_string(int layers_left) const
-    {
-        std::string tree{};
-        tree += state.pieces().to_string();
+
+// Print the main node and its children
+std::string Node::to_string(int layers_left) const
+{
+    std::string tree{};
+    tree += state.get_board().to_string();
 
         if (layers_left > 0)
         {
