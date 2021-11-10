@@ -7,7 +7,7 @@
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
-// #include "alpha_beta_engine.hpp"
+#include "alpha_beta_engine.hpp"
 
 
 int main(int argc, char** argv)
@@ -25,7 +25,6 @@ int main(int argc, char** argv)
   	std::cerr << tensor << std::endl;
 
 	chess::init();
-	//alpha_beta_engine engine;
-	//return uci::main(engine);
-    return 0;
+	alpha_beta_engine engine;
+	return uci::main(engine);
 }
