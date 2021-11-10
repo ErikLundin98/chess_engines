@@ -28,15 +28,22 @@ namespace minmax {
     }
 
 
-    bool sort_ascending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
+    bool sort_pos_ascending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
     {
         return p1.first < p2.first;
     }
 
-    bool sort_descending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
+    bool sort_pos_descending(const std::pair<double, chess::position>& p1, const std::pair<double, chess::position>& p2)
     {
         return p1.first > p2.first;
     }
+
+
+    bool sort_move_descending(const std::pair<double, chess::move>& p1, const std::pair<double, chess::move>& p2) 
+    {
+        return p1.first > p2.first;
+    }
+
 
     double rec_minmax(const chess::position& pos, const chess::position& root, bool max_node, double alpha, double beta, int curr_depth, int max_depth, const chess::side own_side, std::unordered_map<size_t, double>& pos_scores, std::unordered_map<size_t, double>& prev_scores, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, float max_time) 
     {
@@ -103,10 +110,10 @@ namespace minmax {
                 // MAX
 
                 // Sort elements in descending eval order
-                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_descending);
+                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_pos_descending);
 
                 if (first_search) {
-                    sort(n_moves_scores.begin(), n_moves_scores.end(), sort_descending);
+                    sort(n_moves_scores.begin(), n_moves_scores.end(), sort_move_descending);
                 }
 
                 pos_val = -std::numeric_limits<double>::infinity();
@@ -134,7 +141,7 @@ namespace minmax {
                 // MIN
 
                 // Sort elements in ascending eval order
-                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_ascending);
+                sort(n_pos_scores.begin(), n_pos_scores.end(), sort_pos_ascending);
 
                 pos_val = std::numeric_limits<double>::infinity();
                 for (const auto& score_pos : n_pos_scores) {

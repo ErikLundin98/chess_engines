@@ -119,6 +119,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 }
 	
 
+/*
 
 	while(!stop)
 	{
@@ -180,7 +181,7 @@ done: // se ovan
 	return {best.front(), std::nullopt};
 }
 
-
+*/
 
 void alpha_beta_engine::reset()
 {
