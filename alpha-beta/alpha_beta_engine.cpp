@@ -4,6 +4,8 @@
 #include <chrono>
 #include <optional>
 
+#include <sstream>
+
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
@@ -49,6 +51,16 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 {
 	info.message("search started");
 
+	// Debug cancer
+	std::string fenstring = "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2";
+	chess::position p_meme = chess::position::from_fen(fenstring);
+	double eval_val = minmax::estimate_score(p_meme, root.get_turn());
+	std::ostringstream strs;
+	strs << eval_val;
+	std::string str = strs.str();
+	info.message(str);
+
+
 	// UCI setup
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
@@ -62,7 +74,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	std::unordered_map<size_t, double> prev_scores;
 
 	// Iterative deepening
-	for (int eval_depth = 1; true; eval_depth++) {
+	for (int eval_depth = 1; eval_depth <= 1; eval_depth++) {
 		// Set info
 		info.depth(eval_depth);
 		info.nodes(prev_scores.size());

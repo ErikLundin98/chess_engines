@@ -55,18 +55,22 @@ namespace minmax {
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_time = current_time - start_time;
 
-        if (pos_scores.count(pos_hash) >= 1) {             
+        //if (pos_scores.count(pos_hash) >= 1) {             
             // Already in transposition table 
-            pos_val = pos_scores[pos_hash];
+        //    pos_val = pos_scores[pos_hash];
 
-        } else if (pos.is_checkmate()) {
+        //} else
+        if (pos.is_checkmate()) {
             if (pos.get_turn() == own_side) {
                 info.mate(pos.fullmove() - root.fullmove());
 
-                pos_val = std::numeric_limits<double>::infinity();
-            } else {
                 pos_val = -std::numeric_limits<double>::infinity();
+            } else {
+                pos_val = std::numeric_limits<double>::infinity();
             }
+            
+            info.message("checkmate:");
+            info.message(pos.to_fen());
             
         } else if (pos.is_stalemate()) {
             pos_val = 0;
