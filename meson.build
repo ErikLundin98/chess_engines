@@ -93,22 +93,20 @@ example = executable(
 
 # sigmazero
 sigmazero_src = [
-	'sigmazero/main.cpp',
+	'sigmazero/test_drive.cpp',
 	'sigmazero/drl/sigmanet.cpp',
-	'sigmazero/mcts/mcts.cpp',
-	'sigmazero/mcts/misc.cpp',
-	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/misc.cpp',
-	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/network.cpp',
-	'sigmazero/mcts/self_play.cpp'
+	'sigmazero/drl/action_encodings.cpp',
+	#'sigmazero/mcts/mcts.cpp',
+	#'sigmazero/mcts/misc.cpp',
+	#'sigmazero/mcts/node.cpp',
+	#'sigmazero/mcts/self_play.cpp'
 ]
 
 sigmazero = executable(
 	'sigmazero',
-	common_src + sigmazero_src,
-	include_directories : [common_inc],
-	dependencies : [libchess_dep, thread_dep, torch_dep, handcrafted_dep]
+	sigmazero_src,
+	#include_directories : [common_inc],
+	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
 
 training = executable(
@@ -133,7 +131,6 @@ selfplay_src = [
 	'sigmazero/mcts/node.cpp',
 	'sigmazero/mcts/misc.cpp',
 	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/network.cpp',
 	'sigmazero/mcts/self_play.cpp'
 ]
 
@@ -152,3 +149,17 @@ sigmanet = executable(
 	dependencies : [libchess_dep, torch_dep],
 	cpp_pch : 'sigmazero/pch.hpp'
 )
+
+
+
+# sigmazero
+sigmazero_src = [
+	'sigmazero/drl/sigmanet.cpp',
+	'sigmazero/drl/action_encodings.cpp',
+	'sigmazero/mcts/mcts.cpp',
+	'sigmazero/mcts/misc.cpp',
+	'sigmazero/mcts/node.cpp',
+	'sigmazero/mcts/misc.cpp',
+	'sigmazero/mcts/node.cpp',
+	'sigmazero/mcts/self_play.cpp'
+]

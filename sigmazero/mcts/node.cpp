@@ -2,7 +2,7 @@
 #include "node.hpp"
 #include <chess/chess.hpp>
 #include "misc.hpp"
-#include "network.hpp"
+#include <sigmazero/drl/action_encodings.hpp>
 #include <random>
 #include <vector>
 #include <memory>
@@ -77,8 +77,8 @@ namespace mcts
     {
         for (auto action_prob : action_probabilities)
         {
-            chess::move child_move = Network::move_from_action(state, action_prob.first);
-            chess::position child_state = state.copy_move(child_move); // TODO - Make this optional
+            chess::move child_move = action_encodings::move_from_action(state, action_prob.first);
+            chess::position child_state = state.copy_move(child_move);
             std::shared_ptr<Node> new_child = std::make_shared<Node>(child_state, false, weak_from_this(), child_move);
             new_child->prior = action_prob.second;
             new_child->action = action_prob.first;
@@ -184,7 +184,7 @@ namespace mcts
 
     double Node::get_value() const
     {
-        return n != 0 ? t / n : 0.0;
+        return n != 0 ? t / n : -100;
     }
 
 

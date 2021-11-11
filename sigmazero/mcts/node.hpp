@@ -1,7 +1,7 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include "network.hpp"
+#include <sigmazero/drl/action_encodings.hpp>
 #include <chess/chess.hpp>
 #include "misc.hpp"
 #include <vector>
@@ -70,6 +70,7 @@ class Node : public std::enable_shared_from_this<Node>
         chess::move move;
 
         std::vector<std::shared_ptr<Node>> children;
+        //std::map<chess::move, std::shared_ptr<Node>>
         double prior;
         size_t action;
 };

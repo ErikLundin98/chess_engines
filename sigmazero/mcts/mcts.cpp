@@ -1,16 +1,15 @@
 #include "mcts.hpp"
 #include "node.hpp"
 #include "misc.hpp"
-#include "network.hpp"
 #include <chess/chess.hpp>
 #include <memory>
-#include <sigmanet.hpp>
+#include <sigmazero/drl/sigmanet.hpp>
 
 
 namespace mcts
 {
 
-    std::shared_ptr<Node> mcts(chess::position state, int max_iter, const sigmanet& network)
+    std::shared_ptr<Node> mcts(chess::position state, int max_iter, sigmanet& network)
     {
 
         std::shared_ptr<Node> main_node{std::make_shared<Node>(state)};
