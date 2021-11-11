@@ -113,10 +113,7 @@ std::unordered_map<size_t, double> sigmanet::valid_policy_probabilities(const to
     double exp_sum = 0.0;
     for (chess::move move: legal_moves) {
         size_t a = action_encodings::action_from_move(move);
-        std::cout << a << std::endl;
-        std::cout << "Tensor size: " << policy_logits.sizes() << std::endl;
-        double value = policy_logits.index({static_cast<int>(a)}).item<double>();
-        std::cout << "works";
+        double value = policy_logits[0][a].item<double>();
         policy_probabilities[a] = std::exp(value);
         exp_sum += policy_probabilities[a];
     }

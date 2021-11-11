@@ -19,6 +19,6 @@ int main()
         std::cout << "action: " << action << ", value: " << value << std::endl;
     }    
 
-    std::cout << "position value: " << evaluation.first;
+    std::cout << "position value: " << evaluation.first << std::endl;
     return 0;
 }
