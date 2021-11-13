@@ -50,8 +50,7 @@ class Node : public std::enable_shared_from_this<Node>
         bool is_over() const;
         // Get amount of vists
         int get_n() const;
-        // Print the main node and its children
-        std::string to_string(int layers_left=1) const;
+
 
         static double WIN_SCORE;
         static double DRAW_SCORE;

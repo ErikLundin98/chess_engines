@@ -1,7 +1,7 @@
 
+#include "misc.hpp"
 #include "node.hpp"
 #include <chess/chess.hpp>
-#include "misc.hpp"
 #include <sigmazero/drl/action_encodings.hpp>
 #include <random>
 #include <vector>
@@ -185,24 +185,6 @@ namespace mcts
     double Node::get_value() const
     {
         return n != 0 ? t / n : -100;
-    }
-
-
-// Print the main node and its children
-std::string Node::to_string(int layers_left) const
-{
-    std::string tree{};
-    tree += state.get_board().to_string();
-
-        if (layers_left > 0)
-        {
-            tree += '\n' + "---children depth " + std::to_string(layers_left) + " ---\n";
-            for (std::shared_ptr<Node> child_ptr : children)
-            {
-                tree += child_ptr->to_string(layers_left - 1) + '\n';
-            }
-        }
-        return tree;
     }
 
     double Node::WIN_SCORE = 1.0;

@@ -1,14 +1,15 @@
 #include "self_play.hpp"
 #include "mcts.hpp"
-
 #include "node.hpp"
+
 #include <sigmazero/drl/action_encodings.hpp>
 #include <sigmazero/drl/sigmanet.hpp>
+#include <chess/chess.hpp>
+
 #include <iostream>
 #include <memory>
 #include <utility>
 #include <algorithm>
-
 #include <vector>
 
 
@@ -16,7 +17,6 @@ void SelfPlayWorker::grind(){
     while(true) {
         play_game();
     }
-
 }
 
 void SelfPlayWorker::play_game(){

@@ -106,8 +106,8 @@ std::pair<double, std::unordered_map<size_t, double>> sigmanet::decode_output(co
 }
 
 std::unordered_map<size_t, double> sigmanet::valid_policy_probabilities(const torch::Tensor& policy_logits, const chess::position& state) const {
-
-        // Softmax legal moves
+        
+    // Softmax legal moves
     std::unordered_map<size_t, double> policy_probabilities;
     std::vector<chess::move> legal_moves{state.moves()};
     double exp_sum = 0.0;
