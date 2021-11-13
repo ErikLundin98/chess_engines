@@ -26,10 +26,6 @@ libchess_inc = include_directories('libchess')
 libchess_lib = library('libchess', libchess_src)
 libchess_dep = declare_dependency(link_with : libchess_lib, include_directories : libchess_inc)
 
-# handcrafted
-handcrafted_inc = include_directories('handcrafted/include')
-handcrafted_dep = declare_dependency(include_directories : handcrafted_inc)
-
 # libtorch
 py_mod = import('python')
 py_installation = py_mod.find_installation('python3', modules : ['torch'])
@@ -95,7 +91,6 @@ example = executable(
 sigmazero_src = [
 	'sigmazero/test_drive.cpp',
 	'sigmazero/drl/sigmanet.cpp',
-	'sigmazero/drl/action_encodings.cpp',
 	'sigmazero/mcts/mcts.cpp',
 	'sigmazero/mcts/node.cpp',
 	'sigmazero/mcts/self_play.cpp'
@@ -103,10 +98,9 @@ sigmazero_src = [
 
 sigmazero = executable(
 	'sigmazero',
-	sigmazero_src,
+	common_src + sigmazero_src,
 	include_directories : [common_inc],
-	dependencies : [libchess_dep, thread_dep, torch_dep],
-	cpp_pch : 'sigmazero/pch.hpp'
+	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
 
 training = executable(
@@ -126,19 +120,11 @@ selfplay = executable(
 # sigmazero
 selfplay_src = [
 	'sigmazero/selfplay_dummy.cpp',
-	'sigmazero/mcts/mcts.cpp',
 	'sigmazero/mcts/misc.cpp',
 	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/misc.cpp',
 	'sigmazero/mcts/node.cpp',
 	'sigmazero/mcts/self_play.cpp'
 ]
-
-selfplay_dummy = executable(
-	'selfplay_dummy',
-	selfplay_src,
-	dependencies : [libchess_dep, handcrafted_dep]
-)
 
 sigmanet = executable(
 	'sigmanet',
@@ -149,17 +135,3 @@ sigmanet = executable(
 	dependencies : [libchess_dep, torch_dep],
 	cpp_pch : 'sigmazero/pch.hpp'
 )
-
-
-
-# sigmazero
-sigmazero_src = [
-	'sigmazero/drl/sigmanet.cpp',
-	'sigmazero/drl/action_encodings.cpp',
-	'sigmazero/mcts/mcts.cpp',
-	'sigmazero/mcts/misc.cpp',
-	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/misc.cpp',
-	'sigmazero/mcts/node.cpp',
-	'sigmazero/mcts/self_play.cpp'
-]
