@@ -34,7 +34,7 @@ struct action_encodings {
 
     static void initialize_encoding_map();
     static size_t action_from_move(const chess::move& move);
-    static chess::move move_from_action(const chess::position& state, size_t action);
+    static chess::move move_from_action(const chess::position& state, size_t action_idx);
 
 };
 

@@ -7,24 +7,23 @@ thread_dep = dependency('threads')
 
 # libchess
 libchess_src = [
-	'libchess/chess/attack.cpp',
-	'libchess/chess/board.cpp',
-	'libchess/chess/chess.cpp',
-	'libchess/chess/direction.cpp',
-	'libchess/chess/game.cpp',
-	'libchess/chess/move.cpp',
-	'libchess/chess/piece.cpp',
-	'libchess/chess/position.cpp',
-	'libchess/chess/random.cpp',
-	'libchess/chess/set.cpp',
-	'libchess/chess/side.cpp',
-	'libchess/chess/square.cpp',
-	'libchess/chess/zobrist.cpp'
+    'libchess/chess/attack.cpp',
+    'libchess/chess/board.cpp',
+    'libchess/chess/chess.cpp',
+    'libchess/chess/direction.cpp',
+    'libchess/chess/game.cpp',
+    'libchess/chess/move.cpp',
+    'libchess/chess/piece.cpp',
+    'libchess/chess/position.cpp',
+    'libchess/chess/random.cpp',
+    'libchess/chess/set.cpp',
+    'libchess/chess/side.cpp',
+    'libchess/chess/square.cpp',
+    'libchess/chess/zobrist.cpp'
 ]
 
 libchess_inc = include_directories('libchess')
-libchess_lib = library('libchess', libchess_src)
-libchess_dep = declare_dependency(link_with : libchess_lib, include_directories : libchess_inc)
+libchess_dep = declare_dependency(sources : libchess_src, include_directories : libchess_inc)
 
 # libtorch
 py_mod = import('python')
@@ -72,6 +71,7 @@ common_src = [
 	'common/output_thread.cpp'
 ]
 
+
 common_inc = include_directories('common')
 
 # example
@@ -91,10 +91,12 @@ example = executable(
 sigmazero_src = [
 	'sigmazero/test_drive.cpp',
 	'sigmazero/drl/sigmanet.cpp',
+	'sigmazero/drl/action_encodings.cpp',
 	'sigmazero/mcts/mcts.cpp',
 	'sigmazero/mcts/node.cpp',
 	'sigmazero/mcts/self_play.cpp'
 ]
+
 
 sigmazero = executable(
 	'sigmazero',
