@@ -57,30 +57,19 @@ common_src = [
 
 common_inc = include_directories('common')
 
-# example
-example_src = [
-	'example/main.cpp',
-	'example/random_engine.cpp'
+
+# NNUE engine
+
+nnue_src = [
+	'nnue/main.cpp',
+	'nnue/engine.cpp',
+	'nnue/minmax.cpp',
+	'nnue/NNUE.cpp'
 ]
 
-example = executable(
-	'example',
-	common_src + example_src,
-	include_directories : [common_inc, torch_inc],
-	dependencies : [libchess_dep, thread_dep, torch_dep]
-)
-
-# alpha beta engine
-
-alpha_beta_src = [
-	'alpha-beta/main.cpp',
-	'alpha-beta/alpha_beta_engine.cpp',
-	'alpha-beta/minmax.cpp'
-]
-
-alpha_beta = executable(
-	'alpha_beta',
-	common_src + alpha_beta_src,
+nnue = executable(
+	'nnue',
+	common_src + nnue_src,
 	include_directories : [common_inc, torch_inc],
 	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
