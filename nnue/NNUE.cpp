@@ -1,5 +1,7 @@
 #include "NNUE.hpp"
 
+using namespace torch::indexing;
+
 NNUE::evaluator::evaluator(const std::string path) {
     torch::load(l0_weights, path + "input_layer.weight.pt");
     torch::load(l0_biases, path + "input_layer.bias.pt");
@@ -12,15 +14,26 @@ NNUE::evaluator::evaluator(const std::string path) {
 
 }
 
-float NNUE::evaluator::forward(torch::Tensor x) {
-    auto f1 = torch::matmul(l1_weights,x).squeeze() + l1_biases;
+float NNUE::evaluator::forward(torch::Tensor accumulator_white, torch::Tensor accumulator_black, chess::side turn) {
+
+    torch::Tensor x;
+
+    if(turn == chess::side_black) {
+		x = torch::cat({accumulator_black.unsqueeze(1), accumulator_white.unsqueeze(1)}, 0);
+	}
+	else {
+		x = torch::cat({accumulator_white.unsqueeze(1), accumulator_black.unsqueeze(1)}, 0);
+	}
+
+    auto z0 = torch::relu(x);
+    auto f1 = torch::matmul(l1_weights, z0).squeeze() + l1_biases;
 
     auto z1 = torch::relu(f1);
 
-    auto f2 = torch::matmul(l2_weights,z1).squeeze() + l2_biases;
+    auto f2 = torch::matmul(l2_weights, z1).squeeze() + l2_biases;
     auto z2 = torch::relu(f2);
 
-    auto output = torch::matmul(l3_weights,z2).squeeze() + l3_biases;
+    auto output = torch::matmul(l3_weights, z2).squeeze() + l3_biases;
 
     return output[0].item<float>();
 }
@@ -37,10 +50,73 @@ void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspect
     else {
         accumulator_black = torch::matmul(eval.l0_weights,encoding).squeeze() + eval.l0_biases;
     }
+
+    const chess::board& board = pos.pieces();
+
+    chess::bitboard bb_wk = board.piece_set(chess::piece_king, chess::side_white);
+    chess::bitboard bb_bk = board.piece_set(chess::piece_king, chess::side_black);
+
+    for(int i = 0; i < 64; i++) {
+        if( ((bb_wk >> i) & 1) == 1) {
+            white_king_pos = (chess::square)i;
+        }
+        if( ((bb_bk >> i) & 1) == 1) {
+            black_king_pos = (chess::square)i;
+        }
+    }
 }
 
-void NNUE::accumulator::update(const evaluator& eval, enum perspective perspective, const chess::move& move) {
-    return;
+int NNUE::accumulator::get_halfkp_idx(const chess::piece& piece_type, const chess::square& piece_square, const chess::square& king_square, const chess::side& side) {
+    int p_idx = piece_type * chess::sides + side;
+    int halfkp_idx = (king_square * 10 + p_idx) * chess::squares + piece_square;
+}
+
+void NNUE::accumulator::update(const evaluator& eval, enum perspective perspective, const chess::move& move, const chess::board& board) {
+    std::pair<chess::side, chess::piece> moved_piece = board.get(move.from);
+    std::pair<chess::side, chess::piece> captured_piece = board.get(move.to);
+
+    int idx;
+
+    if(perspective == white) {
+        // Remove moved piece
+        idx = get_halfkp_idx(moved_piece.second, move.from, white_king_pos, moved_piece.first);
+        accumulator_white -= eval.l0_weights.index({Slice(), idx});
+
+        // Add new position (check if promoted)
+        chess::piece new_piece = moved_piece.second;
+        if (move.promote != chess::piece_none) {
+            new_piece = move.promote;
+        }
+
+        idx = get_halfkp_idx(new_piece, move.to, white_king_pos, moved_piece.first);
+        accumulator_white += eval.l0_weights.index({Slice(), idx});
+
+        // Remove taken
+        if (captured_piece.second != chess::piece_none) {
+            idx = get_halfkp_idx(captured_piece.second, move.to, white_king_pos, captured_piece.first);
+            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+        }
+    } 
+   else {
+        // Remove moved piece
+        idx = get_halfkp_idx(moved_piece.second, (chess::square)reverse_idx(move.from), (chess::square)reverse_idx(black_king_pos), moved_piece.first);
+        accumulator_white -= eval.l0_weights.index({Slice(), idx});
+
+        // Add new position (check if promoted)
+        chess::piece new_piece = moved_piece.second;
+        if (move.promote != chess::piece_none) {
+            new_piece = move.promote;
+        }
+
+        idx = get_halfkp_idx(new_piece, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(white_king_pos), moved_piece.first);
+        accumulator_white += eval.l0_weights.index({Slice(), idx});
+
+        // Remove taken
+        if (captured_piece.second != chess::piece_none) {
+            idx = get_halfkp_idx(captured_piece.second, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(white_king_pos), captured_piece.first);
+            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+        }
+    }     
 }
 
 void NNUE::accumulator::print_accumulator(enum perspective perspective) {
