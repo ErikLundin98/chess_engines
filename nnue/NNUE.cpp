@@ -66,30 +66,59 @@ void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspect
     }
 }
 
-int NNUE::accumulator::get_halfkp_idx(const chess::piece& piece_type, const chess::square& piece_square, const chess::square& king_square, const chess::side& side) {
-    int p_idx = piece_type * chess::sides + side;
-    int halfkp_idx = (king_square * 10 + p_idx) * chess::squares + piece_square;
-}
+void NNUE::accumulator::update(const evaluator& eval, enum perspective perspective, const chess::move& move, const chess::position& position) {
 
-void NNUE::accumulator::update(const evaluator& eval, enum perspective perspective, const chess::move& move, const chess::board& board) {
+    const chess::board board = position.pieces();
+
     std::pair<chess::side, chess::piece> moved_piece = board.get(move.from);
     std::pair<chess::side, chess::piece> captured_piece = board.get(move.to);
+
+    moved_piece.second = moved_piece.second;
+    captured_piece.second = captured_piece.second;
+
+    chess::position new_pos = position.copy_move(move);
+
+    bool king_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.pieces().get((chess::square)((int)move.from + 1)).second == chess::piece_rook) && position.pieces().get((chess::square)((int)move.from + 1)).second != chess::piece_rook);
+    bool queen_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.pieces().get((chess::square)((int)move.from - 1)).second == chess::piece_rook) && position.pieces().get((chess::square)((int)move.from - 1)).second != chess::piece_rook);
 
     int idx;
 
     if(perspective == white) {
-        // Remove moved piece
-        idx = get_halfkp_idx(moved_piece.second, move.from, white_king_pos, moved_piece.first);
-        accumulator_white -= eval.l0_weights.index({Slice(), idx});
 
-        // Add new position (check if promoted)
-        chess::piece new_piece = moved_piece.second;
-        if (move.promote != chess::piece_none) {
-            new_piece = move.promote;
+        //If the other king was moved we should only update if it captured a piece
+        if (moved_piece.second != chess::piece_king && !king_side_castling && !queen_side_castling) {
+            
+            // Remove moved piece
+            idx = get_halfkp_idx(moved_piece.second, move.from, white_king_pos, moved_piece.first);
+            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+
+            // Add new position (check if promoted)
+            chess::piece new_piece = moved_piece.second;
+            if (move.promote != chess::piece_none) {
+                new_piece =  move.promote;
+            }
+
+            idx = get_halfkp_idx(new_piece, move.to, white_king_pos, moved_piece.first);
+            accumulator_white += eval.l0_weights.index({Slice(), idx});
         }
+        else if(king_side_castling) {
+            // Add rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)((int)move.from + 1), white_king_pos, chess::side_black);
+            accumulator_white += eval.l0_weights.index({Slice(), idx});
 
-        idx = get_halfkp_idx(new_piece, move.to, white_king_pos, moved_piece.first);
-        accumulator_white += eval.l0_weights.index({Slice(), idx});
+            // Remove rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)63, white_king_pos, chess::side_black);
+            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+        }
+        else if(queen_side_castling) {
+             // Add rook
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)((int)move.from - 1), white_king_pos, chess::side_black);
+            accumulator_white += eval.l0_weights.index({Slice(), idx});
+
+            // Remove rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)56, white_king_pos, chess::side_black);
+            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+        }
 
         // Remove taken
         if (captured_piece.second != chess::piece_none) {
@@ -98,23 +127,45 @@ void NNUE::accumulator::update(const evaluator& eval, enum perspective perspecti
         }
     } 
    else {
-        // Remove moved piece
-        idx = get_halfkp_idx(moved_piece.second, (chess::square)reverse_idx(move.from), (chess::square)reverse_idx(black_king_pos), moved_piece.first);
-        accumulator_white -= eval.l0_weights.index({Slice(), idx});
+        if (moved_piece.second != chess::piece_king && !king_side_castling && !queen_side_castling) {
 
-        // Add new position (check if promoted)
-        chess::piece new_piece = moved_piece.second;
-        if (move.promote != chess::piece_none) {
-            new_piece = move.promote;
+            // Remove moved piece
+            idx = get_halfkp_idx(moved_piece.second, (chess::square)reverse_idx(move.from), (chess::square)reverse_idx(black_king_pos), (chess::side)(moved_piece.first != chess::side_black));
+            accumulator_black -= eval.l0_weights.index({Slice(), idx});
+
+            //Add new position (check if promoted)
+            chess::piece new_piece = moved_piece.second;
+            if (move.promote != chess::piece_none) {
+                new_piece = move.promote;
+            }
+
+            idx = get_halfkp_idx(new_piece, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(black_king_pos), (chess::side)(moved_piece.first != chess::side_black));
+            accumulator_black += eval.l0_weights.index({Slice(), idx});
         }
+        else if(king_side_castling) {
+            // Add rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)reverse_idx((chess::square)((int)move.from + 1)), (chess::square)reverse_idx(black_king_pos), chess::side(1));
+            accumulator_black += eval.l0_weights.index({Slice(), idx});
 
-        idx = get_halfkp_idx(new_piece, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(white_king_pos), moved_piece.first);
-        accumulator_white += eval.l0_weights.index({Slice(), idx});
+            // Remove rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)reverse_idx((chess::square)7), (chess::square)reverse_idx(black_king_pos), chess::side(1));
+            accumulator_black -= eval.l0_weights.index({Slice(), idx});
+        }
+        else if(queen_side_castling) {
+            // Add rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)reverse_idx((chess::square)((int)move.from - 1)), (chess::square)reverse_idx(black_king_pos), chess::side(1));
+            accumulator_black += eval.l0_weights.index({Slice(), idx});
+
+            // Remove rook 
+            idx = get_halfkp_idx(chess::piece_rook, (chess::square)reverse_idx((chess::square)0), (chess::square)reverse_idx(black_king_pos), chess::side(1));
+            accumulator_black -= eval.l0_weights.index({Slice(), idx});
+        }
+        
 
         // Remove taken
         if (captured_piece.second != chess::piece_none) {
-            idx = get_halfkp_idx(captured_piece.second, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(white_king_pos), captured_piece.first);
-            accumulator_white -= eval.l0_weights.index({Slice(), idx});
+            idx = get_halfkp_idx(captured_piece.second, (chess::square)reverse_idx(move.to), (chess::square)reverse_idx(black_king_pos), (chess::side)(captured_piece.first != chess::side_black));
+            accumulator_black -= eval.l0_weights.index({Slice(), idx});
         }
     }     
 }
