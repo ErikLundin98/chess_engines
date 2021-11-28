@@ -24,7 +24,7 @@ public:
     std::size_t replay_size() const;
     void initial_setup(const std::pair<double, std::unordered_map<size_t, double>>& evaluation);
 
-    std::optional<chess::position> traverse();
+    chess::position traverse();
     void explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation);
     chess::move make_best_move(torch::Tensor position_encoding, bool record);
     void output_game(std::ostream& stream);

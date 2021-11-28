@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 		}
 	
 		std::vector<chess::position> positions_to_evaluate(batch_size);
-		std::vector<bool> position_mask(batch_size);
+		//std::vector<bool> position_mask(batch_size);
 		
 		// Initial stuff
 		for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx)
@@ -137,21 +137,20 @@ int main(int argc, char **argv)
 			// Do stuff with workers
 			for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx)
 			{
-				std::optional<chess::position> traversed_position = workers[worker_idx].traverse();
-				if(!traversed_position)
-				{
-					position_mask[worker_idx] = false;
-					continue;
-				}
-				position_mask[worker_idx] = true;
-				positions_to_evaluate[worker_idx] = *traversed_position;
+				chess::position traversed_position = workers[worker_idx].traverse();
+				//position_mask[worker_idx] = true;
+				// if(traversed_position.is_terminal())
+				// {
+				// 	position_mask[worker_idx] = false;
+				// }
+				positions_to_evaluate[worker_idx] = traversed_position;
 			}
 
 			auto evaluation = model->evaluate_batch(positions_to_evaluate, device);
 
 			for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx)
 			{
-				if (position_mask[worker_idx]) workers[worker_idx].explore_and_set_priors(evaluation[worker_idx]);
+				workers[worker_idx].explore_and_set_priors(evaluation[worker_idx]);
 			}
 		}
 

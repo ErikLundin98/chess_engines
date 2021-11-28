@@ -35,22 +35,26 @@ void selfplay_worker::initial_setup(const std::pair<double, std::unordered_map<s
     main_node->add_exploration_noise(0.3, 0.25);
 }
 
-std::optional<chess::position> selfplay_worker::traverse()
+chess::position selfplay_worker::traverse()
 {
     current_node = main_node->traverse();
     
-    if(current_node->is_over())
-    {
-        current_node->backpropagate(current_node->get_terminal_value());
-        return std::nullopt;
-    }
-    
+    // if(current_node->is_over())
+    // {
+    //     current_node->backpropagate(current_node->get_terminal_value());
+    //     return std::nullopt;
+    // }
+
     return current_node->get_state();
 }
 
 void selfplay_worker::explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation)
 {
-    current_node->explore_and_set_priors(evaluation);
+    if(!current_node->is_over())
+    {
+        current_node->expand(evaluation.second);
+    }
+    current_node->backpropagate(evaluation.first);
 }
 
 chess::move selfplay_worker::make_best_move(torch::Tensor position_encoding, bool record)
