@@ -54,24 +54,24 @@ namespace mcts
     double Node::UCB1() const
     {
         auto p = parent.lock();
-        if (n == 0 || (p && p->n == 0))
-        {
-            return DBL_MAX;
-        }
-        else
-        {
-            int N = p ? p->n : 1;
+        // if (n == 0 || (p && p->n == 0))
+        // {
+        //     return DBL_MAX;
+        // }
+        // else
+        // {
+        int N = p ? p->n : 1;
 
-            double explore_factor = log((N + pb_c_base + 1) / pb_c_base) + pb_c_init;
-            explore_factor *= sqrt(N) / (n + 1);
+        double explore_factor = log((N + pb_c_base + 1) / pb_c_base) + pb_c_init;
+        explore_factor *= sqrt(N) / (n + 1);
 
-            double prior_score = explore_factor * prior;
-            double value_score = -get_value();
-            // Negative value score because UCB is useful from the perspective
-            // of the parent. The parent wants the child to be in a bad position, because the child
-            // is the opponents turn.
-            return prior_score + value_score;
-        }
+        double prior_score = explore_factor * prior;
+        double value_score = -get_value();
+        // Negative value score because UCB is useful from the perspective
+        // of the parent. The parent wants the child to be in a bad position, because the child
+        // is the opponents turn.
+        return prior_score + value_score;
+        // }
     }
 
     // Expand node
@@ -95,7 +95,9 @@ namespace mcts
 
     void Node::explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation)
     {
-        expand(evaluation.second);
+        if(children.size() == 0) {
+            expand(evaluation.second);
+        }
         backpropagate(evaluation.first);
     }
 

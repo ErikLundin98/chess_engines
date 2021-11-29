@@ -31,7 +31,9 @@ std::size_t selfplay_worker::replay_size() const
 
 void selfplay_worker::initial_setup(const std::pair<double, std::unordered_map<size_t, double>>& evaluation)
 {
+    std::cout << "main_node children before setup: " << main_node->get_children().size() << std::endl;
     main_node->explore_and_set_priors(evaluation);
+    std::cout << "main_node children after setup: " << main_node->get_children().size() << std::endl;
     main_node->add_exploration_noise(0.3, 0.25);
 }
 
