@@ -95,7 +95,7 @@ namespace mcts
 
     void Node::explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation)
     {
-        if(children.size() == 0) {
+        if(children.size() == 0) { // only expand if not already expanded
             expand(evaluation.second);
         }
         backpropagate(evaluation.first);

@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 
 	long full_searches = 0;
 	long fast_searches = 0; 
-
+	bool new_model_loaded = false;
 	while (true)
 	{
 		// load latest model
@@ -102,6 +102,7 @@ int main(int argc, char **argv)
 				model->to(device);
 				model_changed = model_write;
 				std::cerr << "updated model loaded" << std::endl;
+				new_model_loaded = true;
 			}
 			catch(const std::exception& e)
 			{
@@ -122,8 +123,10 @@ int main(int argc, char **argv)
 		
 		for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx) 
 		{
+			if(new_model_loaded) workers[worker_idx].reinit_main_node(); // instantiate new main node
 			workers[worker_idx].initial_setup(evaluation[worker_idx]);
 		}
+		if(new_model_loaded) new_model_loaded = false;
 	
 		// Do tha search
 		bool do_full_search = search_type_dist(get_generator());

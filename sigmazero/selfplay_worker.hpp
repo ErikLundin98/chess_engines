@@ -26,6 +26,7 @@ public:
 
     chess::position traverse();
     void explore_and_set_priors(const std::pair<double, std::unordered_map<size_t, double>>& evaluation);
+    void reinit_main_node();
     chess::move make_best_move(torch::Tensor position_encoding, bool record);
     void output_game(std::ostream& stream);
 
