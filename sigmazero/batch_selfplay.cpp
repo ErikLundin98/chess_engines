@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
 	std::bernoulli_distribution search_type_dist(full_search_prob);
 
-	int batch_size = 1;
+	int batch_size = 256;
 	
 	std::vector<selfplay_worker> workers(batch_size);
 
