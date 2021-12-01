@@ -18,6 +18,7 @@ class selfplay_worker
 {
 public:
     selfplay_worker();
+    selfplay_worker(chess::game game);
     const chess::position& get_position() const;
     const chess::game& get_game() const;
     bool game_is_terminal(size_t max_game_size=512) const;

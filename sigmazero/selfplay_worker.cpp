@@ -9,6 +9,11 @@ selfplay_worker::selfplay_worker()
     main_node = std::make_shared<mcts::Node>(game.get_position());
 }
 
+selfplay_worker::selfplay_worker(chess::game game) : game{game}
+{
+    main_node = std::make_shared<mcts::Node>(game.get_position());
+}
+
 const chess::position& selfplay_worker::get_position() const
 {
     return game.get_position();
