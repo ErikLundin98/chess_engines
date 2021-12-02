@@ -58,18 +58,16 @@ common_src = [
 common_inc = include_directories('common')
 
 
-# NNUE engine
+# alpha-beta-remake engine
 
-nnue_src = [
-	'nnue/main.cpp',
-	'nnue/engine.cpp',
-	'nnue/minmax.cpp',
-	'nnue/NNUE.cpp'
+alpha_beta_remake_src = [
+	'alpha-beta-remake/main.cpp',
+	'alpha-beta-remake/engine.cpp'
 ]
 
-nnue = executable(
-	'nnue',
-	common_src + nnue_src,
+alpha_beta_remake = executable(
+	'alpha-beta-remake',
+	common_src + alpha_beta_remake_src,
 	include_directories : [common_inc, torch_inc],
 	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
