@@ -1,7 +1,10 @@
 #include "util.hpp"
 #include <string>
 #include <vector>
-
+#include "drl/action_encodings.hpp"
+#include <utility>
+#include <algorithm>
+#include <iostream>
 
 std::mt19937& get_generator() {
     static std::mt19937 generator = std::mt19937(std::random_device{}());
@@ -19,4 +22,25 @@ chess::game get_simple_game (){
     chess::game game{p, std::vector<chess::move>()};
     return game;
 
+}
+
+void debug_position(sigmanet& model, torch::Device device, chess::position state){
+    auto [value, policy] = model->evaluate(state, device);
+    std::vector<std::pair<double, size_t>> prob_actions;
+    for (auto [action, prob]: policy) {
+        prob_actions.push_back(std::make_pair(prob, action));
+    }
+    std::sort(prob_actions.begin(), prob_actions.end());
+    std::reverse(prob_actions.begin(), prob_actions.end());
+    std::setprecision(4);
+    std::cerr << "state("<< value << "): " << state.to_fen() << std::endl;
+    for (auto [prob, action]: prob_actions) {
+        chess::move move = action_encodings::move_from_action(state, action);
+        chess::undo undo = state.make_move(move);
+        auto [value2, _] = model->evaluate(state, device);
+        state.undo_move(move, undo);
+        std::setprecision(4);
+        std::cerr << move.to_lan() << ":" << prob << '(' << value2 <<  ")  |  ";
+    }
+    std::cerr << std::endl;
 }
