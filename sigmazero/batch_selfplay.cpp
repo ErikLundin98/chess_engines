@@ -141,11 +141,6 @@ int main(int argc, char **argv)
 			for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx)
 			{
 				chess::position traversed_position = workers[worker_idx].traverse();
-				//position_mask[worker_idx] = true;
-				// if(traversed_position.is_terminal())
-				// {
-				// 	position_mask[worker_idx] = false;
-				// }
 				positions_to_evaluate[worker_idx] = traversed_position;
 			}
 
@@ -153,7 +148,9 @@ int main(int argc, char **argv)
 
 			for(int worker_idx = 0 ; worker_idx < batch_size ; ++worker_idx)
 			{
-				workers[worker_idx].explore_and_set_priors(evaluation[worker_idx]);
+				if (!positions_to_evaluate[worker_idx].is_terminal()) {
+					workers[worker_idx].explore_and_set_priors(evaluation[worker_idx]);
+				}
 			}
 		}
 

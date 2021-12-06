@@ -44,11 +44,10 @@ chess::position selfplay_worker::traverse()
 {
     current_node = main_node->traverse();
     
-    // if(current_node->is_over())
-    // {
-    //     current_node->backpropagate(current_node->get_terminal_value());
-    //     return std::nullopt;
-    // }
+    if(current_node->is_over())
+    {
+        current_node->backpropagate(current_node->get_terminal_value());
+    }
 
     return current_node->get_state();
 }
