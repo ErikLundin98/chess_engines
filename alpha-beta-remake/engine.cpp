@@ -46,6 +46,8 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     
     info.message("search started");
 
+    std::cout << root.to_fen() << std::endl; 
+
 	// UCI setup
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
@@ -56,7 +58,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     double value;
     chess::move best_move;
 
-	int eval_depth = 3;
+	int eval_depth = 4;
 
 	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
 
@@ -74,6 +76,8 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     // Check if enough time has passed
     auto current_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_time = current_time - start_time;
+
+    std::cout << "nodes evaluated = " << states_evaluated.size() << std::endl;
 
     return {move, std::nullopt};
 }
@@ -119,18 +123,22 @@ double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_d
     //    return alpha_beta_quiescence(state, 0, alpha, beta, max_player, states_evaluated);
     //}
 
+    static int ret_counter = 0;
+
+    
     size_t pos_hash = state.hash();
     
     if(depth >= max_depth || is_terminal(state)) {
         double eval = evaluate(state);
-        states_evaluated[pos_hash] = eval;
+        //states_evaluated[pos_hash] = eval;
+        //std::cout << ++ret_counter << std::endl;
         return eval;
     }
 
 
-    if(states_evaluated.find(pos_hash) != states_evaluated.end()) {
-        return states_evaluated[pos_hash];
-    }
+    // if(states_evaluated.find(pos_hash) != states_evaluated.end()) {
+    //     return states_evaluated[pos_hash];
+    // }
 
     std::vector<std::pair<chess::position, double>> state_evals = child_state_evals(state, false);
 
@@ -170,6 +178,8 @@ double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_d
     }
 
     states_evaluated[pos_hash] = value;
+
+    //std::cout << ++ret_counter << std::endl;
 
     return value;
 }
