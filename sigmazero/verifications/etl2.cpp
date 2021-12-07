@@ -39,20 +39,20 @@ int main()
     int current = 0;
     int start_game = 0;
     int n_saves = 0;
-    std::string feature_n = ">features.pth";
-    std::string policy_n = ">policies.pth";
-    std::string value_n = ">values.pth";
+    std::string feature_n = "features.pt";
+    std::string policy_n = "policies.pt";
+    std::string value_n = "values.pt";
     while(std::getline(f, line))
     {   
         if(current++ < start_game) continue;
-        if(current % 1000 == 0 && current != start_game) {
+        if(current % 2500 == 0 && current != start_game) {
             n_saves++;
-            if(n_saves == 5) 
+            if(n_saves == 4) 
             {
                 n_saves = 0;
-                feature_n = ">" + feature_n;
-                policy_n = ">" + policy_n;
-                value_n = ">" + value_n;
+                feature_n = "I" + feature_n;
+                policy_n = "I" + policy_n;
+                value_n = "I" + value_n;
             }
             std::cout << current << "/" << file_size << "  " << std::endl;
             std::cout << "appending & saving data..." << std::endl;
