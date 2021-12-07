@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     int n_files = 1;
     if(argc > 1) n_files = std::stoi(argv[1]);
     std::string file_delim = "I";
-    if(argc > 2) file_delim = std::stoi(argv[2]);
+    if(argc > 2) file_delim = argv[2];
     int batch_size = 128;
     if(argc > 3) batch_size = std::stoi(argv[3]);
     int epochs = 1;
