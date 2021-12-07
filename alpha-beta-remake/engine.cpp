@@ -41,8 +41,10 @@ void alpha_beta_engine::setup(const chess::position& position, const std::vector
 	}
 }
 
+
 uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci::search_info& info, const std::atomic_bool& ponder, const std::atomic_bool& stop) {
-	info.message("search started");
+    
+    info.message("search started");
 
 	// UCI setup
 	chess::side side = root.get_turn();
@@ -51,66 +53,128 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-	// Iterative deepening setup
-	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
-	std::unordered_map<size_t, double> states_evaluated;
-
     double value;
     chess::move best_move;
 
-	// Iterative deepening
-	for (int eval_depth = 0; eval_depth < 8; eval_depth++) {
-		// Set info
-		info.depth(eval_depth);
-		info.nodes(states_evaluated.size());
+	int eval_depth = 3;
 
-		// Set search datastructures
-		std::unordered_map<size_t, double> pos_scores;
-		    
-        bool is_white = root.get_turn() == own_side; //Change latter
-        best_move = chess::move();
-        double best_value = is_white ? -inf : inf;
-        
-        int move_counter = 0;
-        for(chess::move move : root.moves()) {
-            info.move(move, move_counter++);
-            chess::position new_state = root.copy_move(move);
-            std::vector<chess::move> path{move};
-            value = alpha_beta(new_state, eval_depth, -inf, inf, !is_white, states_evaluated, info, stop, start_time, max_time, path);
+	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
 
-            if((is_white && value >= best_value) || (!is_white && value <= best_value)) {
-                best_value = value;
-                best_move = move;
-            }
-        }
+    std::unordered_map<size_t, double> states_evaluated;
 
-        best_line.clear();
-        best_line.push_back(best_move);
+    chess::move move = alpha_beta_search(root, eval_depth, states_evaluated, info, stop, start_time, max_time);
+    
+    // Set info
+    info.depth(eval_depth);
+    info.nodes(states_evaluated.size());
 
-		// Check if enough time has passed
-        auto current_time = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed_time = current_time - start_time;
-		if (stop || elapsed_time.count() > max_time) {
-			break;
-		}
-	}
+    best_line.clear();
+    best_line.push_back(best_move);
 
-	if (best_line.empty()) {
-        std::cout << "Best_line is empty" << std::endl;
-		best_line.push_back(moves[0]);
-	}
+    // Check if enough time has passed
+    auto current_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_time = current_time - start_time;
 
-    //std::cout << "returning " << best_line.front().to_lan() << " eval score = " << value << std::endl;
-    std::string output = "returning " + best_line.front().to_lan() + " eval score = " + std::to_string(value) + "\n";
-    info.message(output);
-
-    // if(best_line.front().to_lan() == "--") {
-    //     std::cout << "found error " << root.moves()[0].to_lan() << " value = " << value << " best move = " << best_move.to_lan() << std::endl;
-    // }
-
-	return {best_line.front(), std::nullopt};
+    return {move, std::nullopt};
 }
-	
+
+chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_depth, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {
+    bool is_white = state.get_turn() == chess::side_white;
+    chess::move best_move = chess::move();
+    double best_value = is_white ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+    
+    for(chess::move move : state.moves()) {
+        chess::position new_state = state.copy_move(move);
+        double value = alpha_beta(new_state, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, info, stop, start_time, max_time);
+
+        if((is_white && value > best_value) || (!is_white && value < best_value)) {
+            best_value = value;
+            best_move = move;
+        }
+    }
+
+    return best_move;
+}
+
+std::vector<std::pair<chess::position, double>> alpha_beta_engine::child_state_evals(const chess::position& state, bool quiescence_search) {
+    std::vector<std::pair<chess::position, double>> child_evals;
+    for(chess::move move : state.moves()) {
+        // if(quiescence_search && is_quiet(state, move))
+        //     continue;
+
+        chess::position child_state = state.copy_move(move);
+        double child_value = evaluate(child_state);
+        
+        child_evals.push_back({child_state, child_value});
+    }
+
+    return child_evals;
+}
+
+
+double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
+					  const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
+
+    //if(depth >= max_depth && !is_stable(state)) {
+    //    return alpha_beta_quiescence(state, 0, alpha, beta, max_player, states_evaluated);
+    //}
+
+    size_t pos_hash = state.hash();
+    
+    if(depth >= max_depth || is_terminal(state)) {
+        double eval = evaluate(state);
+        states_evaluated[pos_hash] = eval;
+        return eval;
+    }
+
+
+    if(states_evaluated.find(pos_hash) != states_evaluated.end()) {
+        return states_evaluated[pos_hash];
+    }
+
+    std::vector<std::pair<chess::position, double>> state_evals = child_state_evals(state, false);
+
+    double value;
+
+    if(max_player) {
+        sort(state_evals.begin(), state_evals.end(), sort_descending);
+
+        value = -std::numeric_limits<double>::infinity();
+        
+        for(auto state_eval : state_evals) {
+            chess::position child_state = state_eval.first;
+            value = std::max(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, false, states_evaluated, info, stop, start_time, max_time));
+
+            if(value >= beta) {
+                break;
+            }
+            
+            alpha = std::max(alpha, value);
+        }
+    }
+    else {
+        sort(state_evals.begin(), state_evals.end(), sort_ascending);
+
+        value = std::numeric_limits<double>::infinity();
+
+        for(auto state_eval : state_evals) {
+            chess::position child_state = state_eval.first;
+            value = std::min(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, true, states_evaluated, info, stop, start_time, max_time));
+
+            if(value <= alpha) {
+                break;
+            }
+
+            beta = std::min(beta, value);
+        }
+    }
+
+    states_evaluated[pos_hash] = value;
+
+    return value;
+}
+
+
 void alpha_beta_engine::reset() {
     return;
 }
@@ -154,7 +218,25 @@ bool alpha_beta_engine::is_terminal(const chess::position& state) {
     return state.is_checkmate() || state.is_stalemate();
 }
 
-double alpha_beta_engine::alpha_beta(chess::position state, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, 
+
+
+bool sort_ascending(const std::pair<chess::position, double>& p1, const std::pair<chess::position, double>& p2) {
+   return p1.second < p2.second;
+}
+
+bool sort_descending(const std::pair<chess::position, double>& p1, const std::pair<chess::position, double>& p2) {
+   return p1.second > p2.second;
+}
+
+
+
+
+
+
+
+
+
+/* double alpha_beta_engine::alpha_beta(chess::position state, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, 
                                     const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time,
                                     std::vector<chess::move>& path) {
 
@@ -244,13 +326,78 @@ double alpha_beta_engine::alpha_beta(chess::position state, int max_depth, doubl
 
     return value;
 }
+*/
 
 
-bool sort_ascending(const search_child& p1, const search_child& p2) {
-   return p1.evaluation < p2.evaluation;
+
+/*
+uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci::search_info& info, const std::atomic_bool& ponder, const std::atomic_bool& stop) {
+	info.message("search started");
+
+	// UCI setup
+	chess::side side = root.get_turn();
+	std::vector<chess::move> moves = root.moves();
+	std::vector<chess::move> best_line;
+	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
+	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+	// Iterative deepening setup
+	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
+	std::unordered_map<size_t, double> states_evaluated;
+
+    double value;
+    chess::move best_move;
+
+	// Iterative deepening
+	for (int eval_depth = 0; eval_depth < 8; eval_depth++) {
+		// Set info
+		info.depth(eval_depth);
+		info.nodes(states_evaluated.size());
+
+		// Set search datastructures
+		std::unordered_map<size_t, double> pos_scores;
+		    
+        bool is_white = root.get_turn() == own_side; //Change latter
+        best_move = chess::move();
+        double best_value = is_white ? -inf : inf;
+        
+        int move_counter = 0;
+        for(chess::move move : root.moves()) {
+            info.move(move, move_counter++);
+            chess::position new_state = root.copy_move(move);
+            std::vector<chess::move> path{move};
+            value = alpha_beta(new_state, eval_depth, -inf, inf, !is_white, states_evaluated, info, stop, start_time, max_time, path);
+
+            if((is_white && value >= best_value) || (!is_white && value <= best_value)) {
+                best_value = value;
+                best_move = move;
+            }
+        }
+
+        best_line.clear();
+        best_line.push_back(best_move);
+
+		// Check if enough time has passed
+        auto current_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_time = current_time - start_time;
+		if (stop || elapsed_time.count() > max_time) {
+			break;
+		}
+	}
+
+	if (best_line.empty()) {
+        std::cout << "Best_line is empty" << std::endl;
+		best_line.push_back(moves[0]);
+	}
+
+    //std::cout << "returning " << best_line.front().to_lan() << " eval score = " << value << std::endl;
+    std::string output = "returning " + best_line.front().to_lan() + " eval score = " + std::to_string(value) + "\n";
+    info.message(output);
+
+    // if(best_line.front().to_lan() == "--") {
+    //     std::cout << "found error " << root.moves()[0].to_lan() << " value = " << value << " best move = " << best_move.to_lan() << std::endl;
+    // }
+
+	return {best_line.front(), std::nullopt};
 }
-
-bool sort_descending(const search_child& p1, const search_child& p2) {
-   return p1.evaluation > p2.evaluation;
-}
-
+*/
