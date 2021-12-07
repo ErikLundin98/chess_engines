@@ -116,3 +116,15 @@ verification = executable(
 	['sigmazero/verifications/loss_test_play.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
 	dependencies : [libchess_dep, torch_dep]
 )
+
+etl = executable(
+	'etl',
+	['sigmazero/verifications/etl2.cpp', 'sigmazero/base64.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
+pre_train = executable(
+	'pre_train',
+	['sigmazero/verifications/pre_train.cpp', 'sigmazero/base64.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
