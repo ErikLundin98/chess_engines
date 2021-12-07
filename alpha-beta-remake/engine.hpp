@@ -28,14 +28,14 @@ public:
     uci::search_result search(const uci::search_limit& limit, uci::search_info& info, const std::atomic_bool& ponder, const std::atomic_bool& stop) override; //Main function
     void reset() override;
 
-	chess::move alpha_beta_search(chess::position state, int max_depth, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
+	chess::move alpha_beta_search(chess::position state, int max_depth, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
 	//double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
 	//				  const std::chrono::steady_clock::time_point& start_time, const float max_time);
 	
-	double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
-					  const std::chrono::steady_clock::time_point& start_time, const float max_time);
+	double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, 
+					uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
 
-	std::vector<std::pair<chess::position, double>> child_state_evals(const chess::position& state, bool quiescence_search);
+	std::vector<std::pair<chess::position, double>> child_state_evals(const chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search);
 
 private:
 	chess::position root;

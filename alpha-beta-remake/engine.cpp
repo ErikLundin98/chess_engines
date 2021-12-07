@@ -58,18 +58,31 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     double value;
     chess::move best_move;
 
-	int eval_depth = 4;
-
 	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
 
-    std::unordered_map<size_t, double> states_evaluated;
+    std::unordered_map<size_t, double> prev_evaluated;
 
-    chess::move move = alpha_beta_search(root, eval_depth, states_evaluated, info, stop, start_time, max_time);
+    for (int eval_depth = 3; eval_depth < 4; eval_depth++) {
+
+        std::unordered_map<size_t, double> states_evaluated;
+
+        best_move = alpha_beta_search(root, eval_depth, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
+
+        info.depth(eval_depth);
+        info.nodes(states_evaluated.size());
+
+        prev_evaluated = states_evaluated;
+
+        // Check if enough time has passed
+        auto current_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_time = current_time - start_time;
+		if (stop || elapsed_time.count() > max_time) {
+			break;
+		}
+    }
+
     
     // Set info
-    info.depth(eval_depth);
-    info.nodes(states_evaluated.size());
-
     best_line.clear();
     best_line.push_back(best_move);
 
@@ -77,38 +90,54 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     auto current_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
-    std::cout << "nodes evaluated = " << states_evaluated.size() << std::endl;
+    std::cout << "nodes evaluated = " << prev_evaluated.size() << std::endl;
 
-    return {move, std::nullopt};
+    return {best_move, std::nullopt};
 }
 
-chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_depth, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {
+chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_depth, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {
     bool is_white = state.get_turn() == chess::side_white;
     chess::move best_move = chess::move();
     double best_value = is_white ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
     
     for(chess::move move : state.moves()) {
         chess::position new_state = state.copy_move(move);
-        double value = alpha_beta(new_state, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, info, stop, start_time, max_time);
+        double value = alpha_beta(new_state, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
 
         if((is_white && value > best_value) || (!is_white && value < best_value)) {
             best_value = value;
             best_move = move;
         }
+
+        // Check if enough time has passed
+        auto current_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_time = current_time - start_time;
+		if (stop || elapsed_time.count() > max_time) {
+			break;
+		}
     }
 
     return best_move;
 }
 
-std::vector<std::pair<chess::position, double>> alpha_beta_engine::child_state_evals(const chess::position& state, bool quiescence_search) {
+std::vector<std::pair<chess::position, double>> alpha_beta_engine::child_state_evals(const chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search) {
     std::vector<std::pair<chess::position, double>> child_evals;
     for(chess::move move : state.moves()) {
         // if(quiescence_search && is_quiet(state, move))
         //     continue;
 
         chess::position child_state = state.copy_move(move);
-        double child_value = evaluate(child_state);
-        
+
+        double child_value = evaluate(state);
+
+        /*
+        if (prev_evaluated.find(child_state.hash()) == prev_evaluated.end()) {
+            child_value = evaluate(child_state);
+        } else {
+            child_value = prev_evaluated[child_state.hash()];
+        }
+        */
+
         child_evals.push_back({child_state, child_value});
     }
 
@@ -116,8 +145,8 @@ std::vector<std::pair<chess::position, double>> alpha_beta_engine::child_state_e
 }
 
 
-double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
-					  const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
+double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, 
+                std::unordered_map<size_t, double>& prev_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
 
     //if(depth >= max_depth && !is_stable(state)) {
     //    return alpha_beta_quiescence(state, 0, alpha, beta, max_player, states_evaluated);
@@ -125,22 +154,36 @@ double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_d
 
     static int ret_counter = 0;
 
-    
     size_t pos_hash = state.hash();
     
-    if(depth >= max_depth || is_terminal(state)) {
+    if (depth >= max_depth || is_terminal(state)) {
         double eval = evaluate(state);
-        //states_evaluated[pos_hash] = eval;
+        states_evaluated[pos_hash] = eval;
         //std::cout << ++ret_counter << std::endl;
         return eval;
     }
-
 
     // if(states_evaluated.find(pos_hash) != states_evaluated.end()) {
     //     return states_evaluated[pos_hash];
     // }
 
-    std::vector<std::pair<chess::position, double>> state_evals = child_state_evals(state, false);
+    auto current_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_time = current_time - start_time;
+
+    if (stop || elapsed_time.count() > max_time) {
+        double eval = evaluate(state);
+        /*
+        if (prev_evaluated.find(pos_hash) == prev_evaluated.end()) {
+            eval = evaluate(state);
+        } else {
+            eval = prev_evaluated[pos_hash];
+        }*/
+
+        states_evaluated[pos_hash] = eval;
+        return eval;
+    }
+
+    std::vector<std::pair<chess::position, double>> state_evals = child_state_evals(state, prev_evaluated, false);
 
     double value;
 
@@ -151,7 +194,7 @@ double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_d
         
         for(auto state_eval : state_evals) {
             chess::position child_state = state_eval.first;
-            value = std::max(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, false, states_evaluated, info, stop, start_time, max_time));
+            value = std::max(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, false, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
 
             if(value >= beta) {
                 break;
@@ -167,7 +210,7 @@ double alpha_beta_engine::alpha_beta(chess::position state, int depth, int max_d
 
         for(auto state_eval : state_evals) {
             chess::position child_state = state_eval.first;
-            value = std::min(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, true, states_evaluated, info, stop, start_time, max_time));
+            value = std::min(value, alpha_beta(child_state, depth + 1, max_depth, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
 
             if(value <= alpha) {
                 break;
