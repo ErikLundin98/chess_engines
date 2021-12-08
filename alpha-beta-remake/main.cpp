@@ -28,9 +28,13 @@ int main(int argc, char** argv)
 	const std::atomic_bool ponder{};
 	const std::atomic_bool stop{};
 
-	//engine.search(limit, info , ponder, stop);
+	auto current_time = std::chrono::steady_clock::now();
 
-	//std::cout << "done " << std::endl;
+	engine.search(limit, info , ponder, stop);
 
-	return uci::main(engine);
+	std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+
+	std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
+
+	return 1; //uci::main(engine);
 }

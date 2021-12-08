@@ -46,8 +46,6 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     
     info.message("search started");
 
-    std::cout << root.to_fen() << std::endl; 
-
 	// UCI setup
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
@@ -57,16 +55,23 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 
     double value;
     chess::move best_move;
+    chess::move move = chess::move();
+    bool has_completed_first = false;
 
 	chess::side own_side = side; // This should change if we ponder, maybe extracted from UCI settings somehow?
 
     std::unordered_map<size_t, double> prev_evaluated;
 
-    for (int eval_depth = 3; eval_depth < 4; eval_depth++) {
+    for (int eval_depth = 0; eval_depth < 6; eval_depth++) {
+
+        if(eval_depth > 0) {
+            best_move = move;
+            has_completed_first = true;
+        }
 
         std::unordered_map<size_t, double> states_evaluated;
 
-        best_move = alpha_beta_search(root, eval_depth, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
+        move = alpha_beta_search(root, eval_depth, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
 
         info.depth(eval_depth);
         info.nodes(states_evaluated.size());
@@ -90,7 +95,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
     auto current_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
-    std::cout << "nodes evaluated = " << prev_evaluated.size() << std::endl;
+    //std::cout << "nodes evaluated = " << prev_evaluated.size() << std::endl;
 
     return {best_move, std::nullopt};
 }
@@ -101,10 +106,11 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
     double best_value = is_white ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
     
     for(chess::move move : state.moves()) {
+    
         chess::position new_state = state.copy_move(move);
         double value = alpha_beta(new_state, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
 
-        if((is_white && value > best_value) || (!is_white && value < best_value)) {
+        if((is_white && value >= best_value) || (!is_white && value <= best_value)) {
             best_value = value;
             best_move = move;
         }
@@ -128,16 +134,14 @@ std::vector<std::pair<chess::position, double>> alpha_beta_engine::child_state_e
 
         chess::position child_state = state.copy_move(move);
 
-        double child_value = evaluate(state);
+        double child_value = evaluate(child_state);
 
-        /*
         if (prev_evaluated.find(child_state.hash()) == prev_evaluated.end()) {
             child_value = evaluate(child_state);
         } else {
             child_value = prev_evaluated[child_state.hash()];
         }
-        */
-
+        
         child_evals.push_back({child_state, child_value});
     }
 
@@ -236,8 +240,9 @@ void alpha_beta_engine::reset() {
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
 double alpha_beta_engine::evaluate(const chess::position& state) {
-    //return ::eval::evaluate(state);
+    return ::eval::evaluate(state);
 
+    /*
     if(state.is_checkmate()) {
         return state.get_turn() == chess::side_white ? -inf : inf;
     }
@@ -265,6 +270,7 @@ double alpha_beta_engine::evaluate(const chess::position& state) {
 
         return value;
     }
+    */
 }
 
 bool alpha_beta_engine::is_terminal(const chess::position& state) {

@@ -69,14 +69,16 @@ private:
 /// \param state The chess board state.
 /// \returns Value of state. For a win or a loss, the value is infinite and negativily infinite respectively.
 inline double evaluate(const chess::position& state){
-    if (state.is_checkmate()) {
-        return -evaluator::infinity();
-    } else if(state.is_stalemate()) {
+    
+    if(state.is_checkmate()) {
+        return state.get_turn() == chess::side_white ? -evaluator::infinity() : evaluator::infinity();
+    }
+    else if(state.is_stalemate()) {
         return 0.0;
     }
-
-    evaluator cur(state, state.get_turn());
-    evaluator other(state, opponent(state.get_turn()));
+    
+    evaluator cur(state, chess::side_white);
+    evaluator other(state, chess::side_black);
     return cur.eval_side() - other.eval_side();
 }
 
