@@ -30,11 +30,11 @@ int main(int argc, char** argv)
 
 	auto current_time = std::chrono::steady_clock::now();
 
-	engine.search(limit, info , ponder, stop);
+	//engine.search(limit, info , ponder, stop);
 
-	std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+	//std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
 
-	std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
+	//std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
 
-	return 1; //uci::main(engine);
+	return uci::main(engine);
 }

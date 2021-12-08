@@ -32,10 +32,11 @@ public:
 	//double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
 	//				  const std::chrono::steady_clock::time_point& start_time, const float max_time);
 	
-	double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, 
+	double alpha_beta(chess::position& state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, 
 					uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
 
-	std::vector<std::pair<chess::position, double>> child_state_evals(const chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search);
+	void child_state_evals(chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search,
+							std::vector<std::pair<chess::move, double>>& output);
 
 private:
 	chess::position root;
@@ -54,6 +55,6 @@ private:
 	
 };
 
-bool sort_ascending(const std::pair<chess::position, double>& p1, const std::pair<chess::position, double>& p2);
-bool sort_descending(const std::pair<chess::position, double>& p1, const std::pair<chess::position, double>& p2);
+bool sort_ascending(const std::pair<chess::move, double>& p1, const std::pair<chess::move, double>& p2);
+bool sort_descending(const std::pair<chess::move, double>& p1, const std::pair<chess::move, double>& p2);
 
