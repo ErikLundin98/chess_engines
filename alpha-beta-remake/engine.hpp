@@ -16,7 +16,7 @@ public:
 
 	std::string name() const override
 	{
-		return "Alpha Beta";
+		return "Alpha Beta Remake";
 	}
 
 	std::string author() const override
@@ -32,16 +32,19 @@ public:
 	//double alpha_beta(chess::position state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, uci::search_info& info, const std::atomic_bool& stop,
 	//				  const std::chrono::steady_clock::time_point& start_time, const float max_time);
 	
-	double alpha_beta(chess::position& state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, 
+	double alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, std::unordered_map<size_t, double>& prev_evaluated, 
 					uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
 
-	void child_state_evals(chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search,
+	void child_state_evals(chess::position& state, chess::side own_size, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search,
 							std::vector<std::pair<chess::move, double>>& output);
 
 private:
 	chess::position root;
 
     static constexpr double inf = std::numeric_limits<double>::infinity();
+	static constexpr int key_size = 24;
+	static constexpr int table_size = 1 << 24;
+	static constexpr int key_mask = (1 << 24) - 1;
 
     double evaluate(const chess::position& state);
     bool is_terminal(const chess::position& state);

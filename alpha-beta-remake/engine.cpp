@@ -10,7 +10,7 @@
 #include <uci/uci.hpp>
 
 #include "engine.hpp"
-#include "eval.hpp"
+#include "new_eval.hpp"
 
 alpha_beta_engine::alpha_beta_engine() : root() {
 	
@@ -112,12 +112,14 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
     bool is_white = state.get_turn() == chess::side_white;
     chess::move best_move = chess::move();
     double best_value = is_white ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+
+    chess::side own_side = state.get_turn();
     
     for(chess::move move : state.moves()) {
     
         chess::undo undo = state.make_move(move);
         
-        double value = alpha_beta(state, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
+        double value = alpha_beta(state, own_side, 0, max_depth, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), !is_white, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
         
         state.undo_move(move, undo);
         
@@ -137,7 +139,7 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
     return best_move;
 }
 
-void alpha_beta_engine::child_state_evals(chess::position& state, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search, std::vector<std::pair<chess::move, double>>& output) {
+void alpha_beta_engine::child_state_evals(chess::position& state, chess::side own_side, std::unordered_map<size_t, double>& prev_evaluated, bool quiescence_search, std::vector<std::pair<chess::move, double>>& output) {
         
     for(chess::move move : state.moves()) {
         // if(quiescence_search && is_quiet(state, move))
@@ -149,7 +151,7 @@ void alpha_beta_engine::child_state_evals(chess::position& state, std::unordered
         double value; // = evaluate(state);
 
         if (prev_evaluated.find(state.hash()) == prev_evaluated.end()) {
-            value = evaluate(state);
+            value = new_eval::evaluate(state, own_side);
         } else {
             value = prev_evaluated[state.hash()];
         }
@@ -161,7 +163,7 @@ void alpha_beta_engine::child_state_evals(chess::position& state, std::unordered
 }
 
 
-double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, 
+double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, double alpha, double beta, bool max_player, std::unordered_map<size_t, double>& states_evaluated, 
                 std::unordered_map<size_t, double>& prev_evaluated, uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
 
     //if(depth >= max_depth && !is_stable(state)) {
@@ -171,7 +173,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
     size_t pos_hash = state.hash();
     
     if (depth >= max_depth || is_terminal(state)) {
-        double eval = evaluate(state);
+        double eval = new_eval::evaluate(state, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -181,7 +183,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
     if (stop || elapsed_time.count() > max_time) {
-        double eval = evaluate(state);
+        double eval = new_eval::evaluate(state, own_side);
         /*
         if (prev_evaluated.find(pos_hash) == prev_evaluated.end()) {
             eval = evaluate(state);
@@ -194,7 +196,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
     }
 
     std::vector<std::pair<chess::move, double>> state_evals;
-    child_state_evals(state, prev_evaluated, false, state_evals);
+    child_state_evals(state, own_side, prev_evaluated, false, state_evals);
 
     double value;
 
@@ -206,7 +208,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
         for(auto state_eval : state_evals) {
             chess::undo undo = state.make_move(state_eval.first);
             
-            value = std::max(value, alpha_beta(state, depth + 1, max_depth, alpha, beta, false, states_evaluated, 
+            value = std::max(value, alpha_beta(state, own_side, depth + 1, max_depth, alpha, beta, false, states_evaluated, 
                             prev_evaluated, info, stop, start_time, max_time));
             state.undo_move(state_eval.first, undo);
 
@@ -215,8 +217,6 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
             }
             
             alpha = std::max(alpha, value);
-
-            
         }
     }
     else {
@@ -227,7 +227,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, int depth, int max_
         for(auto state_eval : state_evals) {
             chess::undo undo = state.make_move(state_eval.first);
 
-            value = std::min(value, alpha_beta(state, depth + 1, max_depth, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
+            value = std::min(value, alpha_beta(state, own_side, depth + 1, max_depth, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
             state.undo_move(state_eval.first, undo);
 
             if(value <= alpha) {
@@ -250,11 +250,12 @@ void alpha_beta_engine::reset() {
     return;
 }
 
+/*
 // pawn, rook, knight, bishop, queen, king
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
 double alpha_beta_engine::evaluate(const chess::position& state) {
-    //return ::eval::evaluate(state);
+    return ::eval::evaluate(state);
 
     
     if(state.is_checkmate()) {
@@ -284,8 +285,9 @@ double alpha_beta_engine::evaluate(const chess::position& state) {
 
         return value;
     }
-    
 }
+*/
+
 
 bool alpha_beta_engine::is_terminal(const chess::position& state) {
     return state.is_checkmate() || state.is_stalemate();
