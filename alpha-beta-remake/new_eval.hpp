@@ -102,6 +102,12 @@ const double POSITION_VALUE_MAP[7][64] = {
 /* Functions */
 
 inline double evaluate(const chess::position& pos, chess::side own_side) {
+    if (pos.is_checkmate()) {
+        return pos.get_turn() == own_side ? -INF_DOUBLE : INF_DOUBLE; 
+    } else if (pos.is_stalemate()) {
+        return 0.0;
+    }
+
     const chess::board& b = pos.pieces();
 
     double position_value_own = 0.0;
@@ -110,8 +116,8 @@ inline double evaluate(const chess::position& pos, chess::side own_side) {
     double material_value_own = 0.0;
     double material_value_opponent = 0.0;
 
-    chess::square king_sq_own;
-    chess::square king_sq_opponent;
+    chess::square king_sq_own = chess::square_none;
+    chess::square king_sq_opponent = chess::square_none;
 
     /* Add values for all pieces that aren't kings */
     for (int sq_int = chess::square_a1; sq_int <= chess::square_h8; sq_int++) {

@@ -28,13 +28,15 @@ int main(int argc, char** argv)
 	const std::atomic_bool ponder{};
 	const std::atomic_bool stop{};
 
-	auto current_time = std::chrono::steady_clock::now();
+	// auto current_time = std::chrono::steady_clock::now();
 
-	//engine.search(limit, info , ponder, stop);
+	// std::cout << "inside main " << std::endl;
 
-	//std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+	// engine.search(limit, info , ponder, stop);
 
-	//std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
+	// std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+
+	// std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
 
 	return uci::main(engine);
 }
