@@ -32,7 +32,7 @@ void debug_position(sigmanet& model, torch::Device device, chess::position state
     }
     std::sort(prob_actions.begin(), prob_actions.end());
     std::reverse(prob_actions.begin(), prob_actions.end());
-    std::setprecision(4);
+    std::setprecision(8);
     std::cerr << "state("<< value << "): " << state.to_fen() << std::endl;
     for (auto [prob, action]: prob_actions) {
         chess::move move = action_encodings::move_from_action(state, action);

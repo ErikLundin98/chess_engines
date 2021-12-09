@@ -144,6 +144,33 @@ namespace mcts
         return get_max_element<std::shared_ptr<Node>>(children.begin(), num_visits.begin(), num_visits.end());
     }
 
+    std::shared_ptr<Node> Node::softmax_sample() const {
+        if (children.size() == 0) return std::shared_ptr<Node>();
+        std::vector<double> distribution{};
+        double exp_sum = 0;
+        for (std::shared_ptr<Node> child : children)
+        {
+            // std::cerr << child->n << " ";
+            distribution.push_back(std::exp(child->n));
+            exp_sum += distribution.back();
+        }
+        // std::cerr << std::endl;
+        for (size_t i = 0; i < distribution.size(); i++) {
+            distribution[i] /= exp_sum;
+            if (i > 0) {
+                distribution[i] += distribution[i-1];
+            }
+            // std::cerr << distribution[i] << " ";
+        }
+        // std::cerr << std::endl;
+
+        std::uniform_real_distribution<double> unif(0, 1);
+        double random = unif(get_generator());
+        size_t idx = std::lower_bound(distribution.begin(), distribution.end(), random) - distribution.begin();
+        // std::cerr << random << " : " << idx << "/" << distribution.size() << std::endl; 
+        return children[idx];
+    }
+
     // Returns the labels for the policy head
     std::vector<double> Node::action_distribution(size_t num_actions)
     {

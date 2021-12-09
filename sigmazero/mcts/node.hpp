@@ -39,6 +39,7 @@ class Node : public std::enable_shared_from_this<Node>
         // Retrieve the best child node based on UCB1 score
         // Can be useful if we want to keep the tree from the previous iterations
         std::shared_ptr<Node> best_child() const;
+        std::shared_ptr<Node> softmax_sample() const;
         // Get action distribution for the children of this node.
         // Should be ran after the entire mcts search is completeted.
         std::vector<double> action_distribution(size_t num_actions=64*73);
@@ -62,7 +63,6 @@ class Node : public std::enable_shared_from_this<Node>
         static double pb_c_init;
 
     private:
-
         double t = 0.0;
         int n = 0;
 
