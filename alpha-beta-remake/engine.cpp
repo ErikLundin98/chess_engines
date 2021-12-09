@@ -43,6 +43,11 @@ void alpha_beta_engine::setup(const chess::position& position, const std::vector
 }
 
 
+void alpha_beta_engine::reset() {
+    return;
+}
+
+
 uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci::search_info& info, const std::atomic_bool& ponder, const std::atomic_bool& stop) {
     
     info.message("search started");
@@ -116,11 +121,13 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
 
     chess::side own_side = state.get_turn();
 
+    int max_depth_quiescence = 4;
+
     for(chess::move move : state.moves()) {
 
         chess::undo undo = state.make_move(move);
 
-        double value = alpha_beta(state, own_side, 0, max_depth, -inf, inf, false, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
+        double value = alpha_beta(state, own_side, 0, max_depth, max_depth_quiescence, -inf, inf, false, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
         
         state.undo_move(move, undo);
         
@@ -140,12 +147,14 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
     return best_move;
 }
 
+
 void alpha_beta_engine::child_state_evals(chess::position& state, chess::side own_side, double* prev_evaluated, bool quiescence_search,
 							std::vector<std::pair<chess::move, double>>& output) {
         
-    for(chess::move move : state.moves()) {
-        // if(quiescence_search && is_quiet(state, move))
-        //     continue;
+    for (chess::move move : state.moves()) {
+        if (quiescence_search && is_quiet(state, move)) {
+            continue;
+        }
 
         chess::undo undo = state.make_move(move);
 
@@ -165,15 +174,19 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
 }
 
 
-double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, double alpha, double beta, bool max_player,
-						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
+double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, int max_depth_quiescence, double alpha, double beta, 
+                        bool max_player, double* states_evaluated, double* prev_evaluated, uci::search_info& info,
 						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
 
-    //if(depth >= max_depth && !is_stable(state)) {
-    //    return alpha_beta_quiescence(state, 0, alpha, beta, max_player, states_evaluated);
-    //}
-
     size_t pos_hash = state.hash() & key_mask;
+
+    if(depth >= max_depth && !is_stable(state)) {
+        double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
+                                            start_time, max_time);
+        states_evaluated[pos_hash] = eval;
+        return eval;
+    }
+
 
     if (depth >= max_depth || is_terminal(state)) {
         double eval = new_eval::evaluate(state, own_side);
@@ -206,7 +219,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
             auto state_eval = state_evals[i]; 
             chess::undo undo = state.make_move(state_eval.first);
             
-            value = std::max(value, alpha_beta(state, own_side, depth + 1, max_depth, alpha, beta, false, states_evaluated, 
+            value = std::max(value, alpha_beta(state, own_side, depth + 1, max_depth, max_depth_quiescence, alpha, beta, false, states_evaluated, 
                             prev_evaluated, info, stop, start_time, max_time));
             state.undo_move(state_eval.first, undo);
 
@@ -231,7 +244,8 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
             chess::undo undo = state.make_move(state_eval.first);
 
-            value = std::min(value, alpha_beta(state, own_side, depth + 1, max_depth, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
+            value = std::min(value, alpha_beta(state, own_side, depth + 1, max_depth, max_depth_quiescence, alpha, beta, true, states_evaluated, 
+                        prev_evaluated, info, stop, start_time, max_time));
             state.undo_move(state_eval.first, undo);
 
             if(value <= alpha) {
@@ -249,14 +263,119 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
     return value;
 }
 
+double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::side own_side, int depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
+						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
+						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
 
-void alpha_beta_engine::reset() {
-    return;
+    size_t pos_hash = state.hash() & key_mask;
+
+
+    if(depth >= max_depth_quiescence || is_stable(state) || is_terminal(state)) {
+        double eval = new_eval::evaluate(state, own_side);
+        states_evaluated[pos_hash] = eval;
+        return evaluate(state);
+    }
+
+    if (depth >= max_depth_quiescence || is_terminal(state)) {
+        double eval = new_eval::evaluate(state, own_side);
+        states_evaluated[pos_hash] = eval;
+        return eval;
+    }
+
+    auto current_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_time = current_time - start_time;
+
+    if (stop || elapsed_time.count() > max_time) {
+        double eval = new_eval::evaluate(state, own_side);
+        states_evaluated[pos_hash] = eval;
+        return eval;
+    }
+
+    std::vector<std::pair<chess::move, double>> state_evals;
+    child_state_evals(state, own_side, prev_evaluated, true, state_evals);
+
+    double value;
+
+    if(max_player) {
+        sort(state_evals.begin(), state_evals.end(), sort_descending);
+
+        value = -std::numeric_limits<double>::infinity();
+
+        elapsed_time = std::chrono::steady_clock::now() - start_time;
+
+        for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
+            auto state_eval = state_evals[i]; 
+            chess::undo undo = state.make_move(state_eval.first);
+            
+            value = std::max(value, alpha_beta_quiescence(state, own_side, depth + 1, max_depth_quiescence, alpha, beta, false, states_evaluated, 
+                            prev_evaluated, info, stop, start_time, max_time));
+            state.undo_move(state_eval.first, undo);
+
+            if(value >= beta) {
+                break;
+            }
+            
+            alpha = std::max(alpha, value);
+
+            elapsed_time = std::chrono::steady_clock::now() - start_time;
+        }
+    }
+    else {
+        sort(state_evals.begin(), state_evals.end(), sort_ascending);
+
+        value = std::numeric_limits<double>::infinity();
+
+        elapsed_time = std::chrono::steady_clock::now() - start_time;
+
+        for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
+            auto state_eval = state_evals[i]; 
+
+            chess::undo undo = state.make_move(state_eval.first);
+
+            value = std::min(value, alpha_beta_quiescence(state, own_side, depth + 1, max_depth_quiescence, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
+            state.undo_move(state_eval.first, undo);
+
+            if(value <= alpha) {
+                break;
+            }
+
+            beta = std::min(beta, value);
+
+            elapsed_time = std::chrono::steady_clock::now() - start_time;
+        }
+    }
+
+    states_evaluated[pos_hash] = value;
+
+    return value;
 }
-
 
 bool alpha_beta_engine::is_terminal(const chess::position& state) {
     return state.is_checkmate() || state.is_stalemate();
+}
+
+
+/**
+ * Returns true if there are no takes or promotes are possible from the given state
+ */
+bool alpha_beta_engine::is_stable(const chess::position& state) {
+    for(chess::move move : state.moves()) {
+        if(!is_quiet(state, move))
+            return false;
+    }
+
+    return true;
+}
+
+
+/**
+ * Returns true if move is not a take or promotion
+ */
+bool alpha_beta_engine::is_quiet(const chess::position& state, const chess::move& move) {
+    chess::square sq = move.to;
+    chess::piece promote = move.promote;
+
+    return state.pieces().get(sq).second == chess::piece_none && promote == chess::piece_none;
 }
 
 

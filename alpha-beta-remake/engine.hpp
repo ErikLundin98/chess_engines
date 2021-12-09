@@ -36,12 +36,19 @@ public:
 									uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, 
 									const float max_time);
 	
-	double alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, double alpha, double beta, bool max_player,
+	double alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
+						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
+						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
+
+
+	double alpha_beta_quiescence(chess::position& state, chess::side own_side, int depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
 						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
 						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time);
 
 	void child_state_evals(chess::position& state, chess::side own_side, double* prev_evaluated, bool quiescence_search,
 							std::vector<std::pair<chess::move, double>>& output);
+
+
 
 private:
 	chess::position root;
@@ -50,6 +57,8 @@ private:
 
     double evaluate(const chess::position& state);
     bool is_terminal(const chess::position& state);
+	bool is_stable(const chess::position& state);
+	bool is_quiet(const chess::position& state, const chess::move& move);
     	
 };
 
