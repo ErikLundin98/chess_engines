@@ -122,8 +122,8 @@ int main(int argc, char** argv)
 
 	model->train();
 	model->to(device);
-	torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(0.1).momentum(0.9).weight_decay(0.0001)); // varying lr
-
+	// torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(0.01).momentum(0.9).weight_decay(0.0001)); // varying lr
+	torch::optim::AdamW optimizer(model->parameters(), torch::optim::AdamWOptions().weight_decay(0.0001));
 
 	// statistics
 	unsigned long long received = 0;
