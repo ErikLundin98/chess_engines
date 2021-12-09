@@ -2,8 +2,6 @@
 #define NEW_EVAL_H
 
 #include <chess/chess.hpp>
-#include "material.hpp"
-#include "piece_maps.hpp"
 
 #include <limits>
 

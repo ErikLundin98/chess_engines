@@ -13,7 +13,7 @@
 #include "engine.hpp"
 #include "new_eval.hpp"
 
-alpha_beta_engine::alpha_beta_engine() : root(), evaluator("") {
+alpha_beta_engine::alpha_beta_engine() : root(), evaluator("/home/marno874/tdde19/evaluation-model/models/params/") {
 	
     // most clients require these options
 	opt.add<uci::option_spin>("MultiPV", 1, 1, 1);
@@ -113,12 +113,17 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
     int max_depth_quiescence = 2;
 
     NNUE::accumulator accumulator{};
+    accumulator.refresh(evaluator, NNUE::white, state);
+    accumulator.refresh(evaluator, NNUE::black, state);
 
     for(chess::move move : state.moves()) {
 
+        NNUE::accumulator new_accumulator(accumulator);
+        set_accumulator(new_accumulator, move, state);
+
         chess::undo undo = state.make_move(move);
 
-        double value = alpha_beta(state, own_side, 0, max_depth, max_depth_quiescence, -inf, inf, false, states_evaluated, prev_evaluated, info, stop, start_time, max_time);
+        double value = alpha_beta(state, own_side, 0, max_depth, max_depth_quiescence, -inf, inf, false, states_evaluated, prev_evaluated, info, stop, start_time, max_time, accumulator);
         
         state.undo_move(move, undo);
         
@@ -140,7 +145,7 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
 
 
 void alpha_beta_engine::child_state_evals(chess::position& state, chess::side own_side, double* prev_evaluated, bool quiescence_search,
-							std::vector<std::pair<chess::move, double>>& output) {
+							std::vector<std::pair<chess::move, double>>& output, const NNUE::accumulator& accumulator) {
         
     for (chess::move move : state.moves()) {
         /*
@@ -148,14 +153,16 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
             continue;
         }
         */
-
+        NNUE::accumulator new_accumulator(accumulator);
+        set_accumulator(new_accumulator, move, state);
+        
         chess::undo undo = state.make_move(move);
 
         double value;
         int index = state.hash() & key_mask;
 
         if (prev_evaluated[index] == 0) {
-            value = evaluate(state, own_side);
+            value = evaluate(new_accumulator, own_side);
         } else {
             value = prev_evaluated[index];
         }
@@ -166,23 +173,53 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
     }
 }
 
+void alpha_beta_engine::set_accumulator(NNUE::accumulator& new_acc, chess::move move, 
+						                chess::position& state) {
+    
+    std::pair<chess::side, chess::piece> moved_piece = state.pieces().get(move.from);
+    
+    //King moved -> refresh accumulator on that side
+    if(moved_piece.second == chess::piece_king) {
+
+        chess::undo undo = state.make_move(move);
+        if(state.get_turn() == chess::side_white) {
+            new_acc.refresh(evaluator, NNUE::white, state);
+            state.undo_move(move, undo);
+            
+            new_acc.update(evaluator, NNUE::black, move, state);
+        }
+        else {
+            new_acc.refresh(evaluator, NNUE::black, state);
+            state.undo_move(move, undo);
+
+            new_acc.update(evaluator, NNUE::white, move, state);
+        }
+    }
+    // No king movement -> use move to update accumulators
+    else {
+        new_acc.update(evaluator, NNUE::white, move, state);
+        new_acc.update(evaluator, NNUE::black, move, state);
+    }
+}
+
 
 double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, int max_depth_quiescence, double alpha, double beta, 
                         bool max_player, double* states_evaluated, double* prev_evaluated, uci::search_info& info,
-						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
+						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time,
+                        const NNUE::accumulator& accumulator) { 
 
     size_t pos_hash = state.hash() & key_mask;
 
     
-    if(depth >= max_depth && !is_stable(state)) {
-        double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
-                                            start_time, max_time);
-        states_evaluated[pos_hash] = eval;
-        return eval;
-    }
-    
+    // if(depth >= max_depth && !is_stable(state)) {
+    //     double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
+    //                                         start_time, max_time, accumulator);
+    //     states_evaluated[pos_hash] = eval;
+    //     return eval;
+    // }
+
     if (depth >= max_depth || is_terminal(state)) {
-        double eval = evaluate(state, own_side);
+        double eval = evaluate(accumulator, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -191,13 +228,13 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
     if (stop || elapsed_time.count() > max_time) {
-        double eval = evaluate(state, own_side);
+        double eval = evaluate(accumulator, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
 
     std::vector<std::pair<chess::move, double>> state_evals;
-    child_state_evals(state, own_side, prev_evaluated, false, state_evals);
+    child_state_evals(state, own_side, prev_evaluated, false, state_evals, accumulator);
 
     double value;
 
@@ -210,10 +247,16 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
         for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
             auto state_eval = state_evals[i]; 
+
+            NNUE::accumulator new_accumulator(accumulator);
+            set_accumulator(new_accumulator, state_eval.first, state);
+
             chess::undo undo = state.make_move(state_eval.first);
+
+            
             
             value = std::max(value, alpha_beta(state, own_side, depth + 1, max_depth, max_depth_quiescence, alpha, beta, false, states_evaluated, 
-                            prev_evaluated, info, stop, start_time, max_time));
+                            prev_evaluated, info, stop, start_time, max_time, new_accumulator));
             state.undo_move(state_eval.first, undo);
 
             if(value >= beta) {
@@ -235,10 +278,13 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
         for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
             auto state_eval = state_evals[i]; 
 
+            NNUE::accumulator new_accumulator(accumulator);
+            set_accumulator(new_accumulator, state_eval.first, state);
+
             chess::undo undo = state.make_move(state_eval.first);
 
             value = std::min(value, alpha_beta(state, own_side, depth + 1, max_depth, max_depth_quiescence, alpha, beta, true, states_evaluated, 
-                        prev_evaluated, info, stop, start_time, max_time));
+                        prev_evaluated, info, stop, start_time, max_time, new_accumulator));
             state.undo_move(state_eval.first, undo);
 
             if(value <= alpha) {
@@ -258,13 +304,14 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
 double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::side own_side, int depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
 						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
-						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time) {    
+						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time,
+						const NNUE::accumulator& accumulator) {    
 
     size_t pos_hash = state.hash() & key_mask;
 
 
     if(depth >= max_depth_quiescence || is_stable(state) || is_terminal(state)) {
-        double eval = evaluate(state, own_side);
+        double eval = evaluate(accumulator, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -273,13 +320,13 @@ double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::s
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
     if (stop || elapsed_time.count() > max_time) {
-        double eval = evaluate(state, own_side);
+        double eval = evaluate(accumulator, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
 
     std::vector<std::pair<chess::move, double>> state_evals;
-    child_state_evals(state, own_side, prev_evaluated, true, state_evals);
+    child_state_evals(state, own_side, prev_evaluated, true, state_evals, accumulator);
 
     double value;
 
@@ -292,10 +339,13 @@ double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::s
 
         for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
             auto state_eval = state_evals[i]; 
+
+            NNUE::accumulator new_accumulator(accumulator);
+            set_accumulator(new_accumulator, state_eval.first, state);
             chess::undo undo = state.make_move(state_eval.first);
             
             value = std::max(value, alpha_beta_quiescence(state, own_side, depth + 1, max_depth_quiescence, alpha, beta, false, states_evaluated, 
-                            prev_evaluated, info, stop, start_time, max_time));
+                            prev_evaluated, info, stop, start_time, max_time, new_accumulator));
             state.undo_move(state_eval.first, undo);
 
             if(value >= beta) {
@@ -317,9 +367,12 @@ double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::s
         for(size_t i = 0; i < state_evals.size() && (!stop && elapsed_time.count() < max_time); i++) {
             auto state_eval = state_evals[i]; 
 
+            NNUE::accumulator new_accumulator(accumulator);
+            set_accumulator(new_accumulator, state_eval.first, state);
             chess::undo undo = state.make_move(state_eval.first);
-
-            value = std::min(value, alpha_beta_quiescence(state, own_side, depth + 1, max_depth_quiescence, alpha, beta, true, states_evaluated, prev_evaluated, info, stop, start_time, max_time));
+            
+            value = std::min(value, alpha_beta_quiescence(state, own_side, depth + 1, max_depth_quiescence, alpha, beta, true, states_evaluated, 
+                        prev_evaluated, info, stop, start_time, max_time, new_accumulator));
             state.undo_move(state_eval.first, undo);
 
             if(value <= alpha) {
@@ -375,15 +428,22 @@ bool sort_descending(const std::pair<chess::move, double>& p1, const std::pair<c
 }
 
 
-
-
-
 // pawn, rook, knight, bishop, queen, king
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
-double alpha_beta_engine::evaluate(const chess::position& state, chess::side own_side) {
+double alpha_beta_engine::evaluate(const NNUE::accumulator& accumulator, chess::side own_side) {
     //return old_evaluate(state, own_side);
-    return new_eval::evaluate(state, own_side);
+    //return new_eval::evaluate(state, own_side);
+    
+    //auto current_time = std::chrono::steady_clock::now();
+	
+    double eval = evaluator.forward(accumulator.accumulator_white, accumulator.accumulator_black, own_side);
+    
+    //std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+	
+    //std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
+    
+    return eval;
 }
 
 double alpha_beta_engine::old_evaluate(const chess::position& state, chess::side own_side) {

@@ -12,6 +12,9 @@ NNUE::evaluator::evaluator(const std::string path) {
     torch::load(l3_weights, path + "fc3.weight.pt");
     torch::load(l3_biases, path + "fc3.bias.pt");
 
+
+    std::cout << l2_biases.size(0) << std::endl;
+
 }
 
 float NNUE::evaluator::forward(torch::Tensor accumulator_white, torch::Tensor accumulator_black, chess::side turn) {
@@ -38,7 +41,18 @@ float NNUE::evaluator::forward(torch::Tensor accumulator_white, torch::Tensor ac
     return output[0].item<float>();
 }
 
+NNUE::accumulator::accumulator(const accumulator& other) {
+
+    accumulator_white = torch::clone(other.accumulator_white);
+    accumulator_black = torch::clone(other.accumulator_black);
+
+    white_king_pos = other.white_king_pos;
+    black_king_pos = other.black_king_pos;
+}
+
 void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspective, const chess::position & pos) {
+
+    std::cout << "inside refresh" << std::endl;
     
     torch::Tensor encoding = torch::zeros(64*64*10);
     halfkp_encode(encoding, pos, perspective);

@@ -30,6 +30,8 @@ private:
 class accumulator {
 public:
     accumulator() = default;
+    accumulator(const accumulator& other);
+
     void update(const evaluator& eval, enum perspective perspective, const chess::move& move,  const chess::position& position);
     void refresh(const evaluator& eval, enum perspective perspective, const chess::position& pos);
     void print_accumulator(enum perspective perspective);

@@ -6,7 +6,7 @@
 
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
-#include <NNUE.hpp>
+#include "NNUE.hpp"
 
 
 class alpha_beta_engine: public uci::engine
@@ -40,16 +40,16 @@ public:
 	double alpha_beta(chess::position& state, chess::side own_side, int depth, int max_depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
 						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
 						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time, 
-						NNUE::accumulator& accum);
+						const NNUE::accumulator& accumulator);
 
 
 	double alpha_beta_quiescence(chess::position& state, chess::side own_side, int depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
 						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
 						const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, const float max_time,
-						NNUE::accumulator& accum);
+						const NNUE::accumulator& accumulator);
 
 	void child_state_evals(chess::position& state, chess::side own_side, double* prev_evaluated, bool quiescence_search,
-							std::vector<std::pair<chess::move, double>>& output);
+							std::vector<std::pair<chess::move, double>>& output, const NNUE::accumulator& accumulator);
 
 
 
@@ -59,12 +59,15 @@ private:
 
     static constexpr double inf = std::numeric_limits<double>::infinity();
 
-	double evaluate(const chess::position& state, chess::side own_side);
+	double evaluate(const NNUE::accumulator& accumulator, chess::side own_side);
     double old_evaluate(const chess::position& state, chess::side own_side);
     bool is_terminal(const chess::position& state);
 	bool is_stable(const chess::position& state);
 	bool is_quiet(const chess::position& state, const chess::move& move);
-    	
+
+	void set_accumulator(NNUE::accumulator& new_acc, chess::move move, 
+						chess::position& old_pos);
+
 };
 
 bool sort_ascending(const std::pair<chess::move, double>& p1, const std::pair<chess::move, double>& p2);
