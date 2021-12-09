@@ -115,13 +115,12 @@ chess::move alpha_beta_engine::alpha_beta_search(chess::position state, int max_
 									uci::search_info& info, const std::atomic_bool& stop, const std::chrono::steady_clock::time_point& start_time, 
 									const float max_time) {
     
-    bool is_white = state.get_turn() == chess::side_white;
     chess::move best_move = chess::move();
     double best_value = -inf;
 
     chess::side own_side = state.get_turn();
 
-    int max_depth_quiescence = 4;
+    int max_depth_quiescence = 2;
 
     for(chess::move move : state.moves()) {
 
@@ -152,9 +151,11 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
 							std::vector<std::pair<chess::move, double>>& output) {
         
     for (chess::move move : state.moves()) {
+        /*
         if (quiescence_search && is_quiet(state, move)) {
             continue;
         }
+        */
 
         chess::undo undo = state.make_move(move);
 
@@ -162,7 +163,7 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
         int index = state.hash() & key_mask;
 
         if (prev_evaluated[index] == 0) {
-            value = new_eval::evaluate(state, own_side);
+            value = evaluate(state, own_side);
         } else {
             value = prev_evaluated[index];
         }
@@ -180,16 +181,16 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
     size_t pos_hash = state.hash() & key_mask;
 
+    
     if(depth >= max_depth && !is_stable(state)) {
         double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
                                             start_time, max_time);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
-
-
+    
     if (depth >= max_depth || is_terminal(state)) {
-        double eval = new_eval::evaluate(state, own_side);
+        double eval = evaluate(state, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -198,7 +199,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
     if (stop || elapsed_time.count() > max_time) {
-        double eval = new_eval::evaluate(state, own_side);
+        double eval = evaluate(state, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -271,13 +272,7 @@ double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::s
 
 
     if(depth >= max_depth_quiescence || is_stable(state) || is_terminal(state)) {
-        double eval = new_eval::evaluate(state, own_side);
-        states_evaluated[pos_hash] = eval;
-        return evaluate(state);
-    }
-
-    if (depth >= max_depth_quiescence || is_terminal(state)) {
-        double eval = new_eval::evaluate(state, own_side);
+        double eval = evaluate(state, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -286,7 +281,7 @@ double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::s
     std::chrono::duration<double> elapsed_time = current_time - start_time;
 
     if (stop || elapsed_time.count() > max_time) {
-        double eval = new_eval::evaluate(state, own_side);
+        double eval = evaluate(state, own_side);
         states_evaluated[pos_hash] = eval;
         return eval;
     }
@@ -390,18 +385,21 @@ bool sort_descending(const std::pair<chess::move, double>& p1, const std::pair<c
 
 
 
-/*
+
 // pawn, rook, knight, bishop, queen, king
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
-double alpha_beta_engine::evaluate(const chess::position& state) {
-    return ::eval::evaluate(state);
+double alpha_beta_engine::evaluate(const chess::position& state, chess::side own_side) {
+    //return old_evaluate(state, own_side);
+    return new_eval::evaluate(state, own_side);
+}
 
+double alpha_beta_engine::old_evaluate(const chess::position& state, chess::side own_side) {
     
-    if(state.is_checkmate()) {
-        return state.get_turn() == chess::side_white ? -inf : inf;
+    if (state.is_checkmate()) {
+        return state.get_turn() == own_side ? -inf : inf;
     }
-    else if(state.is_stalemate()) {
+    else if (state.is_stalemate()) {
         return 0.0;
     }
     
@@ -414,17 +412,19 @@ double alpha_beta_engine::evaluate(const chess::position& state) {
             chess::side side = side_piece.first;
             chess::piece piece = side_piece.second;
 
-            if(piece == chess::piece_none)
+            if(piece == chess::piece_none) {
                 continue;
+            }
             
-            if(side == chess::side_white)
+            if(side == own_side) {
                 value += value_map[piece];
-            else 
+            } else { 
                 value -= value_map[piece];
+            }
         }
 
         return value;
     }
 }
-*/
+
 

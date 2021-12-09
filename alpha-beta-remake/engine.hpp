@@ -55,7 +55,8 @@ private:
 
     static constexpr double inf = std::numeric_limits<double>::infinity();
 
-    double evaluate(const chess::position& state);
+	double evaluate(const chess::position& state, chess::side own_side);
+    double old_evaluate(const chess::position& state, chess::side own_side);
     bool is_terminal(const chess::position& state);
 	bool is_stable(const chess::position& state);
 	bool is_quiet(const chess::position& state, const chess::move& move);
