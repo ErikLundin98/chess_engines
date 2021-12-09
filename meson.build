@@ -25,6 +25,9 @@ libchess_src = [
 libchess_inc = include_directories('libchess')
 libchess_dep = declare_dependency(sources : libchess_src, include_directories : libchess_inc)
 
+# handcrafted
+handcrafted_dep = declare_dependency(include_directories : include_directories('handcrafted/include'))
+
 # libtorch
 py_mod = import('python')
 py_installation = py_mod.find_installation('python3', modules : ['torch'])
@@ -109,6 +112,18 @@ selfplay = executable(
 	'selfplay',
 	['sigmazero/batch_selfplay.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
 	dependencies : [libchess_dep, torch_dep]
+)
+
+evaluate = executable(
+	'evaluate',
+	['sigmazero/evaluate.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
+pretrain_selfplay = executable(
+	'pretrain_selfplay',
+	['sigmazero/pretrain_selfplay.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, handcrafted_dep, torch_dep]
 )
 
 verification = executable(
