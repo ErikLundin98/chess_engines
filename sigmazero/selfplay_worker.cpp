@@ -71,12 +71,29 @@ chess::move selfplay_worker::make_best_move(torch::Tensor position_encoding, boo
         policies.push_back(action_tensor);
         players.push_back(game.get_position().get_turn());
     }
-
-    main_node = main_node->best_child();
+    if (game.size() < 30) {
+        main_node = main_node->softmax_sample();
+    } else {
+        main_node = main_node->best_child();
+    }
     main_node->make_start_node();
     chess::move best_move = main_node->get_move();
     game.push(best_move);
     return best_move;
+}
+
+void selfplay_worker::output_current(std::ostream& stream, torch::Tensor position_encoding, double value){
+    torch::Tensor value_tensor = torch::tensor(value);
+    std::vector<double> action_dist = main_node->action_distribution();
+    torch::Tensor action_tensor = torch::tensor(action_dist);
+    try
+    {
+        stream << encode(position_encoding) << ' ' << encode(value_tensor) << ' ' << encode(action_tensor) << std::endl;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "exception raised when encoding and sending game tensors, skipping..." << std::endl;
+    }
 }
 
 void selfplay_worker::output_game(std::ostream& stream)

@@ -30,6 +30,7 @@ public:
     void reinit_main_node();
     chess::move make_best_move(torch::Tensor position_encoding, bool record);
     void output_game(std::ostream& stream);
+    void output_current(std::ostream& stream, torch::Tensor position_encoding, double value);
 
 private:
 
