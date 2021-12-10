@@ -56,7 +56,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
 	std::vector<chess::move> best_line;
-	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
+	float max_time = std::min(limit.time, limit.clocks[side] / 40); // estimate ~100 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
     double value;
@@ -182,12 +182,13 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
     size_t pos_hash = state.hash() & key_mask;
 
     
+    /*
     if(depth >= max_depth && !is_stable(state)) {
         double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
                                             start_time, max_time);
         states_evaluated[pos_hash] = eval;
         return eval;
-    }
+    }*/
     
     if (depth >= max_depth || is_terminal(state)) {
         double eval = evaluate(state, own_side);
