@@ -56,7 +56,7 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	chess::side side = root.get_turn();
 	std::vector<chess::move> moves = root.moves();
 	std::vector<chess::move> best_line;
-	float max_time = std::min(limit.time, limit.clocks[side] / 40); // estimate ~100 moves per game
+	float max_time = std::min(limit.time, limit.clocks[side] / 41); // estimate ~40 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
     double value;
