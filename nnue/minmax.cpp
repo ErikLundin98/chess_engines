@@ -5,7 +5,7 @@ namespace minmax {
     double estimate_score(const chess::position &p, const chess::side own_side) 
     {
 
-        const chess::board& b = p.pieces();
+        const chess::board& b = p.get_board();
         
         double score = 0;
         for (int sq_int = chess::square_a1; sq_int <= chess::square_h8; sq_int++) {

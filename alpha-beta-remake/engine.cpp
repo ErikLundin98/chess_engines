@@ -371,7 +371,7 @@ bool alpha_beta_engine::is_quiet(const chess::position& state, const chess::move
     chess::square sq = move.to;
     chess::piece promote = move.promote;
 
-    return state.pieces().get(sq).second == chess::piece_none && promote == chess::piece_none;
+    return state.get_board().get(sq).second == chess::piece_none && promote == chess::piece_none;
 }
 
 
@@ -409,7 +409,7 @@ double alpha_beta_engine::old_evaluate(const chess::position& state, chess::side
 
         for(int sq_int = chess::square_a1; sq_int <= chess::square_h8; sq_int++) {
             chess::square sq = static_cast<chess::square>(sq_int);
-            std::pair<chess::side, chess::piece> side_piece = state.pieces().get(sq);
+            std::pair<chess::side, chess::piece> side_piece = state.get_board().get(sq);
             chess::side side = side_piece.first;
             chess::piece piece = side_piece.second;
 

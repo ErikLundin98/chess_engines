@@ -106,7 +106,7 @@ inline double evaluate(const chess::position& pos, chess::side own_side) {
         return 0.0;
     }
 
-    const chess::board& b = pos.pieces();
+    const chess::board& b = pos.get_board();
 
     double position_value_own = 0.0;
     double position_value_opponent = 0.0;

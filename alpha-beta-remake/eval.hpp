@@ -42,7 +42,7 @@ public:
 private:
 
     void add_piece_values(chess::piece piece) {
-        chess::bitboard piece_set = state.pieces().piece_set(piece, side);
+        chess::bitboard piece_set = state.get_board().piece_set(piece, side);
         std::vector<square> piece_locations = set_elements(piece_set);
 
         for(square location: piece_locations) {
@@ -53,7 +53,7 @@ private:
     }
 
     void add_king_values(){
-        chess::bitboard king_set = state.pieces().piece_set(chess::piece_king, side);
+        chess::bitboard king_set = state.get_board().piece_set(chess::piece_king, side);
         std::vector<square> king_locations = set_elements(king_set);
         square king_location = king_locations[0];
         if (material_value >= END_GAME_LIMIT) {

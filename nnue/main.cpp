@@ -78,7 +78,7 @@ int test_update(NNUE::evaluator evaluator, NNUE::accumulator accumulator) {
 			
 			chess::position pos = root.copy_move(move);
 
-			std::pair<chess::side, chess::piece> moved_piece = root.pieces().get(move.from);
+			std::pair<chess::side, chess::piece> moved_piece = root.get_board().get(move.from);
 		
 			//King moved -> refresh accumulator on that side
 			if(moved_piece.second == chess::piece_king) {

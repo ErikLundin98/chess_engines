@@ -51,7 +51,7 @@ void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspect
         accumulator_black = torch::matmul(eval.l0_weights,encoding).squeeze() + eval.l0_biases;
     }
 
-    const chess::board& board = pos.pieces();
+    const chess::board& board = pos.get_board();
 
     chess::bitboard bb_wk = board.piece_set(chess::piece_king, chess::side_white);
     chess::bitboard bb_bk = board.piece_set(chess::piece_king, chess::side_black);
@@ -68,7 +68,7 @@ void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspect
 
 void NNUE::accumulator::update(const evaluator& eval, enum perspective perspective, const chess::move& move, const chess::position& position) {
 
-    const chess::board board = position.pieces();
+    const chess::board board = position.get_board();
 
     std::pair<chess::side, chess::piece> moved_piece = board.get(move.from);
     std::pair<chess::side, chess::piece> captured_piece = board.get(move.to);
@@ -78,8 +78,8 @@ void NNUE::accumulator::update(const evaluator& eval, enum perspective perspecti
 
     chess::position new_pos = position.copy_move(move);
 
-    bool king_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.pieces().get((chess::square)((int)move.from + 1)).second == chess::piece_rook) && position.pieces().get((chess::square)((int)move.from + 1)).second != chess::piece_rook);
-    bool queen_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.pieces().get((chess::square)((int)move.from - 1)).second == chess::piece_rook) && position.pieces().get((chess::square)((int)move.from - 1)).second != chess::piece_rook);
+    bool king_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.get_board().get((chess::square)((int)move.from + 1)).second == chess::piece_rook) && position.get_board().get((chess::square)((int)move.from + 1)).second != chess::piece_rook);
+    bool queen_side_castling = ((moved_piece.second == chess::piece_king) && (new_pos.get_board().get((chess::square)((int)move.from - 1)).second == chess::piece_rook) && position.get_board().get((chess::square)((int)move.from - 1)).second != chess::piece_rook);
 
     int idx;
 
@@ -191,7 +191,7 @@ chess::bitboard NNUE::accumulator::bitboard_mirror(chess::bitboard bb) {
 
 void NNUE::accumulator::halfkp_encode(torch::Tensor& features, const chess::position & pos, enum perspective perspective) {
     //chess::position pos = chess::position::from_fen(fen_string); 
-    const chess::board& board = pos.pieces();
+    const chess::board& board = pos.get_board();
 
     // bitboards for kings
     chess::bitboard bb_wk = board.piece_set(chess::piece_king, chess::side_white);
