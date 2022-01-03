@@ -76,10 +76,12 @@ uci_src = [
 uci_inc = include_directories('uci')
 uci_dep = declare_dependency(sources : uci_src, include_directories : uci_inc)
 
-# example
-example_src = [
-	'example/main.cpp',
-	'example/random_engine.cpp'
+
+# alpha-beta-remake engine
+
+alpha_beta_remake_src = [
+	'alpha-beta-remake/main.cpp',
+	'alpha-beta-remake/engine.cpp'
 ]
 
 example = executable(
@@ -130,4 +132,11 @@ verification = executable(
 	'verification',
 	['sigmazero/verifications/loss_test_play.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
 	dependencies : [libchess_dep, torch_dep]
+)
+
+alpha_beta_remake = executable(
+	'alpha-beta-remake',
+	common_src + alpha_beta_remake_src,
+	include_directories : [common_inc, torch_inc],
+	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
