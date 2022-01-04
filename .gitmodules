@@ -7,3 +7,6 @@
 [submodule "evaluation-model"]
 	path = evaluation-model
 	url = git@gitlab.liu.se:TDDE19-2021-1/evaluation-model.git
+[submodule "evaluation-dataset-creation"]
+	path = evaluation-dataset-creation
+	url = git@gitlab.liu.se:TDDE19-2021-1/evaluation-dataset-creation.git
