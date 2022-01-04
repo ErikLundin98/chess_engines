@@ -20,11 +20,7 @@ public:
     evaluator(const std::string path);
 
     float forward(torch::Tensor accumulator_white, torch::Tensor accumulator_black, chess::side turn);
-    torch::Tensor l0_weights, l1_weights, l2_weights, l3_weights, l0_biases, l1_biases, l2_biases, l3_biases;
-
-private:
-
-    
+    torch::Tensor l0_weights, l1_weights, l2_weights, l3_weights, l0_biases, l1_biases, l2_biases, l3_biases;    
 };
 
 class accumulator {

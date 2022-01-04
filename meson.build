@@ -77,24 +77,20 @@ uci_inc = include_directories('uci')
 uci_dep = declare_dependency(sources : uci_src, include_directories : uci_inc)
 
 
-# alpha-beta-remake engine
-
-
-
-alpha_beta_remake_src = [
-	'alpha-beta-remake/main.cpp',
-	'alpha-beta-remake/engine.cpp'
+# alpha-beta engine
+alpha_beta_src = [
+	'alpha-beta/main.cpp',
+	'alpha-beta/engine.cpp'
 ]
 
-alpha_beta_remake = executable(
-	'alpha-beta-remake',
-	uci_src + alpha_beta_remake_src,
+alpha_beta = executable(
+	'alpha-beta',
+	uci_src + alpha_beta_src,
 	include_directories : [uci_inc, torch_inc],
 	dependencies : [libchess_dep, thread_dep, torch_dep]
 )
 
 # alpha-beta nnue
-
 alpha_beta_nnue_src = [
     'alpha-beta-nnue/main.cpp',
     'alpha-beta-nnue/engine.cpp',
@@ -113,7 +109,6 @@ example_src = [
 	'example/main.cpp',
 	'example/random_engine.cpp'
 ]
-
 
 example = executable(
 	'example',

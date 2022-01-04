@@ -4,16 +4,14 @@
 #include <chrono>
 #include <optional>
 #include <cstring>
-
 #include <sstream>
-
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
 #include "engine.hpp"
 #include "new_eval.hpp"
 
-alpha_beta_engine::alpha_beta_engine() : root(), evaluator("/home/marno874/tdde19/evaluation-model/models/params/") {
+alpha_beta_engine::alpha_beta_engine() : root(), evaluator("../evaluation-model/models/params/") {
 	
     // most clients require these options
 	opt.add<uci::option_spin>("MultiPV", 1, 1, 1);
@@ -49,7 +47,6 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	float max_time = std::min(limit.time, limit.clocks[side] / 100); // estimate ~100 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-    double value;
     chess::move best_move;
     chess::move move = chess::move();
     bool has_completed_first = false;
@@ -148,11 +145,7 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
 							std::vector<std::pair<chess::move, double>>& output, const NNUE::accumulator& accumulator) {
         
     for (chess::move move : state.moves()) {
-        /*
-        if (quiescence_search && is_quiet(state, move)) {
-            continue;
-        }
-        */
+        
         NNUE::accumulator new_accumulator(accumulator);
         set_accumulator(new_accumulator, move, state);
         
@@ -172,6 +165,7 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
         state.undo_move(move, undo);
     }
 }
+
 
 void alpha_beta_engine::set_accumulator(NNUE::accumulator& new_acc, chess::move move, 
 						                chess::position& state) {
@@ -210,7 +204,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
     size_t pos_hash = state.hash() & key_mask;
 
-    
+    // Uncomment to use quiescence search    
     // if(depth >= max_depth && !is_stable(state)) {
     //     double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
     //                                         start_time, max_time, accumulator);
@@ -432,19 +426,12 @@ bool sort_descending(const std::pair<chess::move, double>& p1, const std::pair<c
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
 double alpha_beta_engine::evaluate(const NNUE::accumulator& accumulator, chess::side own_side) {
-    //return old_evaluate(state, own_side);
-    //return new_eval::evaluate(state, own_side);
     
-    //auto current_time = std::chrono::steady_clock::now();
-	
     double eval = evaluator.forward(accumulator.accumulator_white, accumulator.accumulator_black, own_side);
-    
-    //std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
-	
-    //std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
     
     return eval;
 }
+
 
 double alpha_beta_engine::old_evaluate(const chess::position& state, chess::side own_side) {
     

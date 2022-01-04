@@ -22,7 +22,7 @@ public:
 
 	std::string author() const override
 	{
-		return "Angus Joestar";
+		return "";
 	}
 
 	static constexpr int key_size = 24;

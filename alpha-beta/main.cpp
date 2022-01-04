@@ -7,7 +7,7 @@
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
-// #include "alpha_beta_engine.hpp"
+#include "engine.hpp"
 
 
 int main(int argc, char** argv)
@@ -21,11 +21,22 @@ int main(int argc, char** argv)
 		std::cout << "cuda not available" << std::endl;
 	}
 
-	torch::Tensor tensor = torch::eye(3);
-  	std::cerr << tensor << std::endl;
-
 	chess::init();
-	//alpha_beta_engine engine;
-	//return uci::main(engine);
-    return 0;
+	alpha_beta_engine engine;
+	const uci::search_limit limit;
+	uci::search_info info;
+	const std::atomic_bool ponder{};
+	const std::atomic_bool stop{};
+
+	// auto current_time = std::chrono::steady_clock::now();
+
+	// std::cout << "inside main " << std::endl;
+
+	// engine.search(limit, info , ponder, stop);
+
+	// std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - current_time;
+
+	// std::cout << "done execution took " << elapsed_time.count() << " seconds" << std::endl;
+
+	return uci::main(engine);
 }

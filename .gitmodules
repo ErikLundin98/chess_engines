@@ -4,3 +4,6 @@
 [submodule "handcrafted"]
 	path = handcrafted
 	url = git@gitlab.liu.se:TDDE19-2021-1/eval-handcrafted.git
+[submodule "evaluation-model"]
+	path = evaluation-model
+	url = git@gitlab.liu.se:TDDE19-2021-1/evaluation-model.git

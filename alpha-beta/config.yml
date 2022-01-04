@@ -3,7 +3,7 @@ url: "https://lichess.org/"  # Lichess base URL.
 
 engine:                      # Engine settings.
   dir: "../build"               # Directory containing engines, relative to this project.
-  name: "example"      # Binary name of the engine to use.
+  name: "alpha-beta-remake"      # Binary name of the engine to use.
   protocol: "uci"            # "uci" or "xboard"
   ponder: true               # Think on opponent's time.
   polyglot:

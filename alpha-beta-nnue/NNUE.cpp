@@ -11,10 +11,6 @@ NNUE::evaluator::evaluator(const std::string path) {
     torch::load(l2_biases, path + "fc2.bias.pt");
     torch::load(l3_weights, path + "fc3.weight.pt");
     torch::load(l3_biases, path + "fc3.bias.pt");
-
-
-    std::cout << l2_biases.size(0) << std::endl;
-
 }
 
 float NNUE::evaluator::forward(torch::Tensor accumulator_white, torch::Tensor accumulator_black, chess::side turn) {
@@ -51,8 +47,6 @@ NNUE::accumulator::accumulator(const accumulator& other) {
 }
 
 void NNUE::accumulator::refresh(const evaluator& eval, enum perspective perspective, const chess::position & pos) {
-
-    std::cout << "inside refresh" << std::endl;
     
     torch::Tensor encoding = torch::zeros(64*64*10);
     halfkp_encode(encoding, pos, perspective);
@@ -204,7 +198,6 @@ chess::bitboard NNUE::accumulator::bitboard_mirror(chess::bitboard bb) {
 }
 
 void NNUE::accumulator::halfkp_encode(torch::Tensor& features, const chess::position & pos, enum perspective perspective) {
-    //chess::position pos = chess::position::from_fen(fen_string); 
     const chess::board& board = pos.get_board();
 
     // bitboards for kings
