@@ -91,14 +91,6 @@ namespace eval {
                 -50,-30,-30,-30,-30,-30,-30,-50
             }
         };
-
-        // int PAWNS[64] = 
-        // int ROOKS[64] = 
-        // int KNIGHTS[64] = 
-        // int BISHOPS[64] = 
-        // int QUEEN[64] = 
-        // int KING[64] = 
-        // int KING_END_GAME[64] = 
     }
 
 }

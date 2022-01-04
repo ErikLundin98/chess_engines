@@ -4,9 +4,7 @@
 #include <chrono>
 #include <optional>
 #include <cstring>
-
 #include <sstream>
-
 #include <chess/chess.hpp>
 #include <uci/uci.hpp>
 
@@ -20,16 +18,6 @@ alpha_beta_engine::alpha_beta_engine() : root() {
 	opt.add<uci::option_spin>("Move Overhead", 0, 0, 1);
 	opt.add<uci::option_spin>("Threads", 1, 1, 1);
 	opt.add<uci::option_spin>("Hash", 1, 1, 1);
-
-	// demo options
-	//opt.add<uci::option_check>("Demo Check", true);
-	//opt.add<uci::option_spin>("Demo Spin", 0, -10, 10);
-	//opt.add<uci::option_combo>("Demo Combo", "Apples", std::initializer_list<std::string>{"Apples", "Oranges", "Bananas"});
-	//opt.add<uci::option_string>("Demo String", "Tjenare");
-	//opt.add<uci::option_button>("Demo Button", []()
-	//{
-	//	std::cerr << "button pressed" << std::endl;
-	//});
 }
 
 
@@ -59,7 +47,6 @@ uci::search_result alpha_beta_engine::search(const uci::search_limit& limit, uci
 	float max_time = std::min(limit.time, limit.clocks[side] / 41); // estimate ~40 moves per game
 	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
-    double value;
     chess::move best_move;
     chess::move move = chess::move();
     bool has_completed_first = false;
@@ -151,11 +138,6 @@ void alpha_beta_engine::child_state_evals(chess::position& state, chess::side ow
 							std::vector<std::pair<chess::move, double>>& output) {
         
     for (chess::move move : state.moves()) {
-        /*
-        if (quiescence_search && is_quiet(state, move)) {
-            continue;
-        }
-        */
 
         chess::undo undo = state.make_move(move);
 
@@ -181,8 +163,8 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
     size_t pos_hash = state.hash() & key_mask;
 
-    
     /*
+    // Comment in to use quiescence search
     if(depth >= max_depth && !is_stable(state)) {
         double eval = alpha_beta_quiescence(state, own_side, 0, max_depth_quiescence, alpha, beta, max_player, states_evaluated, prev_evaluated, info, stop, 
                                             start_time, max_time);
@@ -264,6 +246,7 @@ double alpha_beta_engine::alpha_beta(chess::position& state, chess::side own_sid
 
     return value;
 }
+
 
 double alpha_beta_engine::alpha_beta_quiescence(chess::position& state, chess::side own_side, int depth, int max_depth_quiescence, double alpha, double beta, bool max_player,
 						double* states_evaluated, double* prev_evaluated, uci::search_info& info,
@@ -379,21 +362,19 @@ bool sort_ascending(const std::pair<chess::move, double>& p1, const std::pair<ch
    return p1.second < p2.second;
 }
 
+
 bool sort_descending(const std::pair<chess::move, double>& p1, const std::pair<chess::move, double>& p2) {
    return p1.second > p2.second;
 }
-
-
-
 
 
 // pawn, rook, knight, bishop, queen, king
 const double value_map[6] = {1.0, 5.0, 3.0, 3.0, 9.0, 0.0};
 
 double alpha_beta_engine::evaluate(const chess::position& state, chess::side own_side) {
-    //return old_evaluate(state, own_side);
     return new_eval::evaluate(state, own_side);
 }
+
 
 double alpha_beta_engine::old_evaluate(const chess::position& state, chess::side own_side) {
     
