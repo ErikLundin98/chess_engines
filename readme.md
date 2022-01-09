@@ -1,4 +1,4 @@
-# tjack
+# Tjack
 
 ## setup
 
@@ -19,7 +19,8 @@ pip install -r requirements.txt
 # setup build directory
 meson build
 # to choose non-default compiler like clang, do `CXX=clang++ meson <builddir>`
-# to select build type, do meson <builddir> --buildtype={debug,release}
+# to select build type, do `meson <builddir> --buildtype={debug,release}`
+# if the build fails with some torch error, try `meson <builddir> -D_GLIBCXX_USE_CXX11_ABI=0
 ```
 
 To build:
@@ -43,16 +44,16 @@ nvidia-smi
 
 olympen1-117.ad.liu.se is known to not satisfy these requirements and will not work.
 
-Install PyTorch with CUDA support:
-
-```sh
-pip3 install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
-```
-
 Ensure that CUDA is available:
 
 ```sh
 ./scripts/has_cuda.py
+```
+
+Set up build directory:
+
+```sh
+meson build -D_GLIBCXX_USE_CXX11_ABI=0
 ```
 
 ## engines

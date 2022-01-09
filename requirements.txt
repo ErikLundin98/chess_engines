@@ -1,3 +1,6 @@
 meson
 ninja
 torch
+pyyaml
+numpy
+colorama
