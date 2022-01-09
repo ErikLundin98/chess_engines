@@ -6,8 +6,27 @@ cpp_compiler = meson.get_compiler('cpp')
 thread_dep = dependency('threads')
 
 # libchess
+libchess_src = [
+    'libchess/chess/attack.cpp',
+    'libchess/chess/board.cpp',
+    'libchess/chess/chess.cpp',
+    'libchess/chess/direction.cpp',
+    'libchess/chess/game.cpp',
+    'libchess/chess/move.cpp',
+    'libchess/chess/piece.cpp',
+    'libchess/chess/position.cpp',
+    'libchess/chess/random.cpp',
+    'libchess/chess/set.cpp',
+    'libchess/chess/side.cpp',
+    'libchess/chess/square.cpp',
+    'libchess/chess/zobrist.cpp'
+]
+
 libchess_inc = include_directories('libchess')
-libchess_dep = declare_dependency(include_directories : libchess_inc)
+libchess_dep = declare_dependency(sources : libchess_src, include_directories : libchess_inc)
+
+# handcrafted
+handcrafted_dep = declare_dependency(include_directories : include_directories('handcrafted/include'))
 
 # libtorch
 py_mod = import('python')
@@ -25,9 +44,9 @@ openmp_dep = dependency('openmp')
 
 libtorch_dep = cpp_compiler.find_library('libtorch', dirs : pytorch_lib_dir)
 libtorch_cpu_dep = cpp_compiler.find_library('libtorch_cpu', dirs : pytorch_lib_dir)
-libtorch_cuda_dep = cpp_compiler.find_library('libtorch_cuda', dirs : pytorch_lib_dir)
+libtorch_cuda_dep = cpp_compiler.find_library('libtorch_cuda', dirs : pytorch_lib_dir, required : false)
 libc10_dep = cpp_compiler.find_library('libc10', dirs : pytorch_lib_dir)
-libc10_cuda_dep = cpp_compiler.find_library('libc10_cuda', dirs : pytorch_lib_dir)
+libc10_cuda_dep = cpp_compiler.find_library('libc10_cuda', dirs : pytorch_lib_dir, required : false)
 libgomp_dep = cpp_compiler.find_library('libgomp', dirs : pytorch_lib_dir)
 
 torch_inc = include_directories(run_command('scripts/rel_from_abs_path.py', pytorch_include_dir, meson.source_root()).stdout().strip(), run_command('scripts/rel_from_abs_path.py', pytorch_api_include_dir, meson.source_root()).stdout().strip())
@@ -45,17 +64,45 @@ endif
 torch_dep = declare_dependency(
 	include_directories : torch_inc,
 	dependencies : torch_lib,
-	compile_args : ['-D_GLIBCXX_USE_CXX11_ABI=0'],
-	link_args : ['-Wl,--no-as-needed']  
+	compile_args : ['-D_GLIBCXX_USE_CXX11_ABI=@0@'.format(get_option('_GLIBCXX_USE_CXX11_ABI'))],
+	link_args : ['-Wl,--no-as-needed']
 )
 
-# common
-common_src = [
-	'common/uci/uci.cpp',
-	'common/output_thread.cpp'
+# uci
+uci_src = [
+	'uci/uci.cpp',
+	'uci/output_thread.cpp'
+]
+uci_inc = include_directories('uci')
+uci_dep = declare_dependency(sources : uci_src, include_directories : uci_inc)
+
+
+# alpha-beta engine
+alpha_beta_src = [
+	'alpha-beta/main.cpp',
+	'alpha-beta/engine.cpp'
 ]
 
-common_inc = include_directories('common')
+alpha_beta = executable(
+	'alpha-beta',
+	uci_src + alpha_beta_src,
+	include_directories : [uci_inc, torch_inc],
+	dependencies : [libchess_dep, thread_dep, torch_dep]
+)
+
+# alpha-beta nnue
+alpha_beta_nnue_src = [
+    'alpha-beta-nnue/main.cpp',
+    'alpha-beta-nnue/engine.cpp',
+    'alpha-beta-nnue/NNUE.cpp'
+]
+
+alpha_beta_nnue = executable(
+    'alpha-beta-nnue',
+    uci_src + alpha_beta_nnue_src,
+    include_directories : [uci_inc, torch_inc],
+    dependencies : [libchess_dep, thread_dep, torch_dep]
+)
 
 # example
 example_src = [
@@ -65,7 +112,51 @@ example_src = [
 
 example = executable(
 	'example',
-	common_src + example_src,
-	include_directories : [common_inc, torch_inc],
-	dependencies : [libchess_dep, thread_dep, torch_dep]
+	example_src,
+	dependencies : [libchess_dep, uci_dep, thread_dep, torch_dep]
 )
+
+# sigmazero
+sigmazero_src = [
+	'sigmazero/drl/sigmanet.cpp',
+	'sigmazero/drl/action_encodings.cpp',
+	'sigmazero/mcts/node.cpp',
+	'sigmazero/util.cpp'
+]
+
+sigmazero = executable(
+	'sigmazero',
+	sigmazero_src + ['sigmazero/sigmazero.cpp'],
+	dependencies : [libchess_dep, uci_dep, thread_dep, torch_dep]
+)
+
+training = executable(
+	'training',
+	['sigmazero/training.cpp', 'sigmazero/base64.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
+selfplay = executable(
+	'selfplay',
+	['sigmazero/batch_selfplay.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
+evaluate = executable(
+	'evaluate',
+	['sigmazero/evaluate.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
+pretrain_selfplay = executable(
+	'pretrain_selfplay',
+	['sigmazero/pretrain_selfplay.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, handcrafted_dep, torch_dep]
+)
+
+verification = executable(
+	'verification',
+	['sigmazero/verifications/loss_test_play.cpp', 'sigmazero/base64.cpp', 'sigmazero/selfplay_worker.cpp'] + sigmazero_src,
+	dependencies : [libchess_dep, torch_dep]
+)
+
