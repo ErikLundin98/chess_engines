@@ -1,6 +1,17 @@
 # Tjack
 
-Implementations of various chess engines. For details about each, see their respective directories:
+Implementations of various chess engines. 
+
+## AlphaBeta
+There are two engines that uses Alpha-Beta algorithm implemented:
+
+- alpha-beta: This engine uses the handcrafted evaluation function defined in: https://gitlab.liu.se/TDDE19-2021-1/eval-handcrafted https://gitlab.liu.se/TDDE19-2021-1/eval-handcrafted.
+- alpha-beta-nnue: This engine uses a NNUE evaluation function and has slightly different search logic to ensure that the embeddings are correctly updated when different moves are applied to ensure efficient inference.
+
+Both engines have the same overall structure otherwise and most of the logic is defined in their respective engine.cpp files.
+
+## Sigmazero
+For details about the implementation, see the respective directory:
 
 - [sigmazero](./sigmazero): AlphaZero/Leela Chess Zero implementation.
 
