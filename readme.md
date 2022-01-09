@@ -1,5 +1,9 @@
 # Tjack
 
+Implementations of various chess engines. For details about each, see their respective directories:
+
+- [sigmazero](./sigmazero): AlphaZero/Leela Chess Zero implementation.
+
 ## setup
 
 First time:
